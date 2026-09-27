@@ -1,0 +1,42 @@
+@import 'tailwindcss';
+@import '@fontsource/press-start-2p';
+
+/* This site is the game itself, so it borrows the game's own dark-purple
+   palette (see WispArena.jsx's `ui`/`gbs` inline styles) rather than a
+   separate corporate theme. */
+
+@theme inline {
+  --font-pixel: 'Press Start 2P', ui-monospace, monospace;
+  --color-ink: #1b1726;
+  --color-panel: #2a2338;
+  --color-accent: #a78bfa;
+  --color-muted: #8b83a3;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  background-color: #1b1726;
+  color: #e8e4f5;
+}
+
+:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
