@@ -1,32 +1,36 @@
-# React + TypeScript + Vite
+# Wisp Warden
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A top-down survival arena game built with React, TypeScript, and Vite. Pick a class, fight off waves of enemies, and take down five bosses to become the Master of Souls.
 
-Currently, two official plugins are available:
+Play it live at [aliimranrohaizi.xyz](https://aliimranrohaizi.xyz), or run it locally below.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Gameplay
 
-## React Compiler
+- **Classes** — pick one of three, each with a unique attack, ability, and companion:
+  - **Warden** (melee tank, *Dash*) — swings hit everything in front; his Wisp companion shoots from range.
+  - **Ranger** (ranged DPS, *Roll*) — fast arrows; a Hawk companion swoops at enemies that get too close.
+  - **Mage** (AoE control, *Blink*) — splashing orbs; a Familiar companion blocks bullets.
+- **Bosses** — survive waves of enemies and defeat 4 minibosses plus a final boss, the Hollow Lord.
+- **Power-ups** — collect leveled power-ups that scale your build as you survive longer.
+- **Trophies** — earn a trophy per class, plus "Master of Souls" for clearing all three. Best runs are saved locally in your browser.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Controls
 
-## Expanding the Oxlint configuration
+- **Keyboard**: WASD / arrow keys to move, Space to use your ability, Esc to pause.
+- **Touch**: drag to move, use a second finger to trigger your ability (or tap the on-screen ability button).
+- **Mobile gamepad skin**: D-pad to move, A for ability, B to pause.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## Tech stack
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+React 19, TypeScript, Vite, Tailwind CSS v4, deployed to Cloudflare Pages via Wrangler. Fully client-side — no backend or database.
+
+## Development
+
+```bash
+npm install       # install dependencies
+npm run dev       # start the dev server
+npm run build     # type-check and build for production
+npm run lint      # run oxlint
+npm run preview   # build, then preview with Wrangler's local Pages runtime
+npm run deploy    # build and deploy to Cloudflare Pages
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
