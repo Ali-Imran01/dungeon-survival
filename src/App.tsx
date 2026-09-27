@@ -9,7 +9,7 @@ function App() {
     <div className="flex min-h-screen flex-col items-center px-4 py-10 sm:py-16">
       <header className="mb-8 max-w-xl text-center">
         <h1 className="text-lg leading-relaxed text-[#e8e4f5] sm:text-2xl" style={{ fontFamily: 'var(--font-pixel)' }}>
-          Wisp Warden
+          Dungeon Survival
         </h1>
         <p className="mt-4 text-sm text-[#8b83a3]">
           Dash, strike, and hold off waves of shades and bosses in this top-down survival arena.

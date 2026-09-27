@@ -1,4 +1,4 @@
-# Wisp Warden
+# Dungeon Survival
 
 A top-down survival arena game built with React, TypeScript, and Vite. Pick a class, fight off waves of enemies, and take down five bosses to become the Master of Souls.
 

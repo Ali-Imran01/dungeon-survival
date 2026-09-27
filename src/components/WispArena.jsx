@@ -221,7 +221,7 @@ export default function WispArena({ projectsHref = "#projects", gameboy = undefi
       )}
       {state === "idle" && (
         <div style={{ ...ui.overlay, background:"rgba(18,14,26,.88)" }}>
-          <div style={{ fontSize:14 }}>Wisp Warden</div>
+          <div style={{ fontSize:14 }}>Dungeon Survival</div>
           <div>Pick a class. Beat 4 minibosses and the Hollow Lord to earn its trophy.</div>
           {trophyRow}
           {allTrophies && <div style={{ color:"#f5c542" }}>Master of Souls</div>}
@@ -277,7 +277,7 @@ export default function WispArena({ projectsHref = "#projects", gameboy = undefi
     </span>
   );
   if (!gb) return (
-    <section aria-label="Mini game: Wisp Warden">
+    <section aria-label="Mini game: Dungeon Survival">
       {screen}
       <div style={{ ...ui.font, maxWidth:720, margin:"8px auto 0", display:"flex", justifyContent:"space-between", alignItems:"center", gap:8, flexWrap:"wrap" }}>
         <span style={{ fontSize:7, color:"#8a83a0" }}>{state === "play" ? ctrl : "M sound · N music"}</span>
@@ -309,7 +309,7 @@ export default function WispArena({ projectsHref = "#projects", gameboy = undefi
   );
 
   return (
-    <section aria-label="Mini game: Wisp Warden" style={{ ...gbs.shell, ...(land ? gbs.land : {}), ...ui.font, color:"#3b2a5c" }}>
+    <section aria-label="Mini game: Dungeon Survival" style={{ ...gbs.shell, ...(land ? gbs.land : {}), ...ui.font, color:"#3b2a5c" }}>
       <style>{`.ww-btn{cursor:pointer}.ww-btn:active{filter:brightness(.8);transform:translateY(1px)}`}</style>
       {land && dpad}
       <div style={land ? { width:"min(56vw, calc((100dvh - 120px) * 1.11))", flex:"none" } : undefined}>
@@ -317,7 +317,7 @@ export default function WispArena({ projectsHref = "#projects", gameboy = undefi
           <div style={gbs.bezelTop}><span style={{ width:6, height:6, borderRadius:"50%", background: state === "play" && !isPaused ? "#ff3355" : "#5a2a34" }} />Soul power<span style={{ flex:1 }} />{soundBtn({ background:"#3a3648", color:"#c9c3dc", padding:"2px 6px", fontSize:7 })}</div>
           {screen}
         </div>
-        <div style={gbs.brand}>Wisp Warden</div>
+        <div style={gbs.brand}>Dungeon Survival</div>
         {land && sel}
       </div>
       {!land && <div style={gbs.controls}>{dpad}{ab}</div>}
