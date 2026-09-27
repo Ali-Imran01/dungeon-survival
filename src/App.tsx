@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react'
 
-const WispArena = lazy(() => import('./components/WispArena.jsx'))
+const DungeonSurvival = lazy(() => import('./components/DungeonSurvival.jsx'))
 
 const PORTFOLIO_URL = 'https://aliimranrohaizi.xyz'
 
@@ -18,7 +18,7 @@ function App() {
 
       <main className="w-full">
         <Suspense fallback={<div className="mx-auto aspect-video max-w-[720px]" aria-hidden="true" />}>
-          <WispArena projectsHref={`${PORTFOLIO_URL}/#work`} />
+          <DungeonSurvival projectsHref={`${PORTFOLIO_URL}/#work`} />
         </Suspense>
       </main>
 

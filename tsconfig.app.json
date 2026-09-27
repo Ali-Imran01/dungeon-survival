@@ -15,7 +15,7 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
-    "allowJs": true, /* WispArena.jsx is plain JS; it is not type-checked (checkJs is off) */
+    "allowJs": true, /* DungeonSurvival.jsx is plain JS; it is not type-checked (checkJs is off) */
 
     /* Linting */
     "noUnusedLocals": true,

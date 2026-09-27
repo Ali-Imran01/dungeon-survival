@@ -2,7 +2,7 @@
 @import '@fontsource/press-start-2p';
 
 /* This site is the game itself, so it borrows the game's own dark-purple
-   palette (see WispArena.jsx's `ui`/`gbs` inline styles) rather than a
+   palette (see DungeonSurvival.jsx's `ui`/`gbs` inline styles) rather than a
    separate corporate theme. */
 
 @theme inline {

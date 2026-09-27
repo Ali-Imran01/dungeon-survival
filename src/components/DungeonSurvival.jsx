@@ -54,7 +54,7 @@ function StatBar({ label, v, c }) {
     {[1,2,3,4,5].map(i => <span key={i} style={{ width:8, height:6, background: i <= v ? c : "#2a2338" }} />)}</div>;
 }
 
-export default function WispArena({ projectsHref = "#projects", gameboy = undefined }) {
+export default function DungeonSurvival({ projectsHref = "#projects", gameboy = undefined }) {
   const coarse = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
   const gb = gameboy ?? coarse;
   const [size, setSize] = useState(() => fitSize(gb));
