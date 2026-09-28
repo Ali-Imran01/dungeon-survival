@@ -3,7 +3,7 @@
 
 // ---------- XP ----------
 export const XP = {
-  shard: { slime: 1, rat: 1, bat: 1, cinder: 0, imp: 2, skeleton: 1, drowned: 2, shade: 2, eye: 2, miniboss: 15, stageBoss: 30 },
+  shard: { slime: 1, bat: 1, cinder: 0, imp: 2, skeleton: 1, drowned: 2, shade: 2, eye: 2, miniboss: 15, stageBoss: 30 },
   need: lv => 25 + 6 * (lv - 1),                 // xp to go from lv → lv+1 : 25, 31, 37, … (~2–3 level-ups per stage)
   magnet: 24,                                     // px; shards fly to the player inside this radius
 };
@@ -94,3 +94,21 @@ export const UP_ICONS = {
   splitOrb:  [".KKK.....","KXYXK....","KXXXK....",".KKK.X...","....X.KKK","...X.KXYK","..KKKKXXK","..KXYK.K.","..KKK...."],
   frostBlink:["..ZZZ....",".Z...Z...","Z..P..Z..","Z.PwP.Z..","Z..P..Z.Z",".Z...Z.ZZ","..ZZZ..Z.",".....Z.Z.","......Z.."],
 };
+
+// ---------- Effective modifiers from owned upgrades (engine + classes read g.mods) ----------
+export function computeMods(owned, cls) {
+  const n = id => owned[id] || 0, pick = (id, arr) => n(id) ? arr[Math.min(n(id), arr.length) - 1] : 0;
+  return {
+    dmg: Math.min(CAPS.damage, 1 + 0.15 * n("sharpen")),
+    atk: 1 + 0.12 * n("haste"),                              // attack-rate multiplier (intervals are divided by this; see atkInterval)
+    move: Math.min(CAPS.moveSpeed, 1 + 0.10 * n("swift")),
+    cd: Math.max(CAPS.cooldown, 1 - 0.15 * n("recovery")),
+    magnet: 1 + 0.5 * n("magnet"),
+    shieldEvery: pick("guardian", [30, 20]), secondWind: n("secondWind") > 0, healEvery: pick("harvest", [40, 30]), companion: n("bond"),
+    arc: 20 * n("wideArc"), reach: 3 * n("wideArc"), dashShield: n("guardDash") ? 1.5 : 0, spinEvery: n("whirlwind") ? 4 : 0, dashDamage: n("shockDash") ? 2 : 0,
+    range: 1 + 0.15 * n("longbow"), projSpeed: 1 + 0.15 * n("longbow"), arrows: n("extraArrow"), bounce: n("ricochet"), rollTrap: n("trapRoll") ? 3 : 0,
+    splash: 1 + 0.15 * n("bigSplash"), chillTime: n("deepFreeze") ? 2 : 1, chillMul: n("deepFreeze") ? 0.4 : 0.5, split: n("splitOrb") > 0, blinkField: n("frostBlink") ? 3 : 0,
+  };
+}
+// attack interval with temporary rate (power-ups) and permanent rate (Haste), never below 50% of base
+export const atkInterval = (base, tempRate, mods) => Math.max(base * CAPS.attackInterval, base / (tempRate * mods.atk));

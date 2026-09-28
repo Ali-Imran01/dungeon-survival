@@ -64,8 +64,8 @@ export function spr(ctx, rows, x, y, flip, pal) {
 }
 
 // h = { x, y, face, moving, atk }
-export function drawHero(ctx, key, h, now) {
-  const Hh = HERO[key], pal = Hh.palFull, f = Math.floor(now / (h.moving ? 90 : 400)), fl = h.face < 0;
+export function drawHero(ctx, key, h, now, palOverride) {
+  const Hh = HERO[key], pal = palOverride || Hh.palFull, f = Math.floor(now / (h.moving ? 90 : 400)), fl = h.face < 0;
   const legs = h.moving ? ["r1","r2","r3","r2"][f % 4] : "i", dy = f % 2;
   const ph = h.atk > 0 ? Hh.phase(h.atk) : -1, px = h.x + (ph === Hh.lunge ? h.face : 0);
   const ov = ph >= 0 ? Hh.atk[ph] : h.moving ? Hh.run : Hh.idle;

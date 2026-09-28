@@ -17,7 +17,7 @@ function App() {
       </header>
 
       <main className="w-full">
-        <Suspense fallback={<div className="mx-auto aspect-video max-w-[720px]" aria-hidden="true" />}>
+        <Suspense fallback={<div className="mx-auto aspect-video max-w-[960px]" aria-hidden="true" />}>
           <DungeonSurvival projectsHref={`${PORTFOLIO_URL}/#work`} />
         </Suspense>
       </main>
