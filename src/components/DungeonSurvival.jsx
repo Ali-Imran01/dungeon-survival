@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { audio, sfx, music } from "./audio.js";
 import { PAL, DIM, TROPHY, HERO, spr, drawHero } from "./sprites.js";
-import { fxLabel } from "./powerups.js";
+import { describe, UP_ICONS, RARITY } from "./upgrades.js";
 import { CLASSES, CLASS_KEYS } from "./classes.js";
-import { W, H, fitSize, newGame, step, draw, orbit, useAbility, BOSSES } from "./engine.js";
+import { W, H, fitSize, newGame, step, draw, orbit, useAbility, STAGES, pickUpgrade, pickStageUpgrade, rerollStageChoices } from "./engine.js";
 
 const ui = {
-  bar: { position:"absolute", bottom:10, left:10, right:10, fontSize:9, pointerEvents:"none" },
-  barBox: { height:7, marginTop:3, background:"#120e1a", border:"2px solid #120e1a", borderRadius:2 },
-  fx: { position:"absolute", top:26, left:0, right:0, textAlign:"center", fontSize:9, color:"#5ef2ff", pointerEvents:"none" },
-  hud: { position:"absolute", top:8, left:10, right:10, display:"flex", justifyContent:"space-between", gap:6, fontSize:10, pointerEvents:"none" },
   overlay: { position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:10, background:"rgba(18,14,26,.75)", textAlign:"center", padding:12, fontSize:10, lineHeight:1.8 },
   btn: { font:"inherit", fontSize:10, padding:"9px 14px", background:"#5b3f8c", color:"#fff", border:"2px solid #120e1a", borderRadius:4, cursor:"pointer", textDecoration:"none", touchAction:"manipulation" },
   font: { fontFamily:"'Press Start 2P', ui-monospace, monospace", color:"#e8e4f5", userSelect:"none", WebkitUserSelect:"none", WebkitTouchCallout:"none", WebkitTapHighlightColor:"transparent" },
@@ -66,6 +62,7 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
   const [dir, setDir] = useState("");
   const [land, setLand] = useState(() => typeof window !== "undefined" && window.innerWidth > window.innerHeight);
   const [hud, setHud] = useState({ hp: 3, kills: 0, time: 0 });
+  const [draft, setDraft] = useState(null);
   const [bests, setBests] = useState(() => load("wisp-bests", {}));
   const [trophies, setTrophies] = useState(() => { const t = load("wisp-trophies", {}); if (load("wisp-trophy", 0) === 1) t.warden = true; return t; });
   const [newMaster, setNewMaster] = useState(false);
@@ -119,14 +116,11 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
         draw(ctx, G, now, state === "play" ? touch.current : null);
       }
       const live = state === "play" && !paused.current && !G.over && onScreen.current && !document.hidden;
-      music.set(live ? (G.boss ? (BOSSES[G.boss.i].final ? "final" : "boss") : "normal") : null);
+      music.set(live ? (G.boss ? (STAGES[G.stage].encounters[G.boss.i].final ? "final" : "boss") : "normal") : null);
       if (state === "play") {
-        const fx = [fxLabel(G), G.p.shield && "Shield"].filter(Boolean).join("  ");
-        const msg = G.msgT > 0 ? G.msg : "";
-        const B = G.boss, boss = B ? { name: BOSSES[B.i].name, pct: Math.max(0, Math.ceil(B.hp / B.max * 100)), c: BOSSES[B.i].bc } : null;
-        const cd = G.p.cd > 0 ? Math.ceil(G.p.cd * 10) : 0;
-        const h = `${G.p.hp}|${G.kills}|${Math.floor(G.t)}|${fx}|${msg}|${boss ? boss.pct : "-"}|${G.bossDone}|${cd}`;
-        if (h !== lastHud) { lastHud = h; setHud({ hp: Math.max(0, G.p.hp), kills: G.kills, time: Math.floor(G.t), fx, msg, boss, stage: Math.min(5, G.bossDone + 1), cd }); }
+        setDraft(G.levelUp ? { kind: "level", choices: G.levelUp.choices } : G.stageClear ? { kind: "stage", choices: G.stageClear.choices, rerolled: G.rerollUsed } : null);
+        const h = `${G.p.hp}|${G.kills}|${Math.floor(G.t)}|${G.msg}|${G.boss ? G.boss.hp : "-"}|${G.stage}|${G.enc}|${!!G.levelUp}|${!!G.stageClear}`;
+        if (h !== lastHud) { lastHud = h; setHud({ hp: Math.max(0, G.p.hp), kills: G.kills, time: Math.floor(G.t) }); }
         if (G.over) {
           setState(G.won ? "win" : "over");
           if (G.won) setTrophies(t => { const n = { ...t, [G.cls]: true }; save("wisp-trophies", n); if (CLASS_KEYS.every(k => n[k]) && !CLASS_KEYS.every(k => t[k])) setNewMaster(true); return n; });
@@ -207,22 +201,32 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
       <canvas ref={cv} width={size[0]} height={size[1]} tabIndex={0} aria-label="Game area"
         onPointerDown={pDown} onPointerMove={pMove} onPointerUp={pUp} onPointerCancel={pUp}
         style={{ display:"block", width:"100%", aspectRatio:`${size[0]}/${size[1]}`, imageRendering:"pixelated", touchAction: state === "play" && !gb ? "none" : "auto", outline:"none" }} />
-      {state === "play" && <div style={ui.hud}><span>{"♥".repeat(hud.hp)}</span><span>{hud.kills} pts</span><span>Boss {hud.stage || 1}/5</span><span>{hud.time}s</span></div>}
-      {state === "play" && hud.boss && (
-        <div style={ui.bar}>
-          <div style={{ color: hud.boss.c }}>{hud.boss.name}</div>
-          <div style={ui.barBox}><div style={{ width: hud.boss.pct + "%", height:"100%", background: hud.boss.c, transition:"width .15s" }} /></div>
+      {state === "play" && draft && (
+        <div style={{ ...ui.overlay, gap:8 }}>
+          <div style={{ fontSize:11, color: draft.kind === "stage" ? "#f5c542" : "#5ef2ff" }}>{draft.kind === "stage" ? "Stage clear! Choose a reward" : "Level up! Choose an upgrade"}</div>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", justifyContent:"center", maxWidth:340 }}>
+            {draft.choices.map(u => (
+              <button key={u.id} onClick={() => { sfx("click"); if (draft.kind === "stage") pickStageUpgrade(g.current, u); else pickUpgrade(g.current, u); }}
+                style={{ ...ui.btn, display:"flex", flexDirection:"column", alignItems:"center", gap:4, width:96, background:"#2a2338", border:`2px solid ${RARITY[u.rarity].color}` }}>
+                <PixelArt rows={UP_ICONS[u.id]} pal={PAL} scale={3} />
+                <div style={{ fontSize:8, color: RARITY[u.rarity].color }}>{u.name}</div>
+                <div style={{ fontSize:6, opacity:.8, lineHeight:1.4 }}>{describe(u, g.current.cls)}</div>
+              </button>
+            ))}
+          </div>
+          {draft.kind === "stage" && !draft.rerolled && (
+            <button style={{ ...ui.btn, background:"transparent", border:"2px solid #5b3f8c", fontSize:8 }} onClick={() => { sfx("click"); rerollStageChoices(g.current); }}>Reroll</button>
+          )}
+          {draft.kind === "stage" && <button style={{ ...ui.btn, fontSize:8 }} onClick={() => { sfx("click"); pickStageUpgrade(g.current, null); }}>Skip</button>}
         </div>
       )}
-      {state === "play" && !hud.boss && <div style={{ ...ui.bar, right:"auto", color: hud.cd ? "#6b6480" : C.color }}>{C.abilityName} {hud.cd ? (hud.cd / 10).toFixed(1) + "s" : "ready"}</div>}
-      {state === "play" && (hud.msg || hud.fx) && <div style={ui.fx}>{hud.msg || hud.fx}</div>}
-      {state === "play" && isPaused && (
+      {state === "play" && !draft && isPaused && (
         <div style={ui.overlay}><div style={{ fontSize:13 }}>Paused</div><button style={ui.btn} onClick={togglePause}>Resume</button></div>
       )}
       {state === "idle" && (
         <div style={{ ...ui.overlay, background:"rgba(18,14,26,.88)" }}>
           <div style={{ fontSize:14 }}>Dungeon Survival</div>
-          <div>Pick a class. Beat 4 minibosses and the Hollow Lord to earn its trophy.</div>
+          <div>Pick a class. Clear the Dungeon's minibosses and defeat The Jailer to earn its trophy.</div>
           {trophyRow}
           {allTrophies && <div style={{ color:"#f5c542" }}>Master of Souls</div>}
           <button style={ui.btn} onClick={openSelect}>{gb ? "Press Start" : "Play"}</button>
@@ -253,7 +257,7 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
           <PixelArt rows={TROPHY} pal={PAL} scale={gb ? 3 : 4} />
           <div style={{ fontSize:11, color:"#f5c542" }}>{CLASSES[g.current.cls].name} trophy earned</div>
           {newMaster && <div style={{ color:"#f5c542" }}>All 3 trophies: Master of Souls!</div>}
-          <div>Hollow Lord defeated in {hud.time}s with {hud.kills} points</div>
+          <div>{STAGES[g.current.stage].encounters[2].name} defeated in {hud.time}s with {hud.kills} points</div>
           {btnRow}
         </div>
       )}
