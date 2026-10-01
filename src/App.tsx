@@ -6,7 +6,7 @@ const PORTFOLIO_URL = 'https://aliimranrohaizi.xyz'
 
 function App() {
   return (
-    <div className="flex min-h-screen flex-col items-center px-4 py-10 sm:py-16">
+    <div className="app-root flex min-h-screen flex-col items-center px-4 py-10 sm:py-16">
       <header className="mb-8 max-w-xl text-center">
         <h1 className="text-lg leading-relaxed text-[#e8e4f5] sm:text-2xl" style={{ fontFamily: 'var(--font-pixel)' }}>
           Dungeon Survival

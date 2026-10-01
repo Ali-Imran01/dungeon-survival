@@ -40,3 +40,8 @@ body {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* Mobile PSP shell (class set by DungeonSurvival.jsx): the handheld fills the landscape viewport, page chrome hidden. */
+html.psp body { margin: 0; background: #0b0b10; }
+html.psp .app-root { padding: 0; min-height: 100dvh; justify-content: center; }
+html.psp .app-root > header, html.psp .app-root > footer { display: none; }

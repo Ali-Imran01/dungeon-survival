@@ -21,7 +21,7 @@ Design (maps/characters) is done in claude.ai chat; implementation and balancing
 | `biomes/*.js` | Per-stage background builders, ambient animation, enemy/boss sprites |
 
 Conventions: sprites are string arrays keyed to palette letters (`.` = transparent). Entities have `x, y, w, h`; centre = `x + w/2, y + h/2`.
-Logical resolution 240×135 (desktop) or 160×144 (Game Boy mode; auto on touch devices or `gameboy` prop).
+Logical resolution 240×135 everywhere (16:9). Touch devices (or `?psp=1`, or the `gameboy` prop) get a landscape PSP-style shell (`psp` styles in DungeonSurvival.jsx): D-pad left, ✕ ability/confirm, ○ pause/back, □ reroll, △ build tab, Start/Select pills, rotate prompt + auto-pause in portrait; page header/footer hidden via `html.psp`. The 160×144 Game Boy size still exists in the engine but nothing uses it; the internal flag is still called `gb` (= compact mobile UI).
 localStorage keys use the `wisp-*` prefix — keep them so saves carry over.
 Sim flags: `--classes=warden,ranger,mage,gunner --god --gun.reload=2.2 --gun.dmg=2 --asn.markMul=1.5 --chr.dmg=2 --chr.pierce=1 --armor=on|off|on-1 --plates=N --repair=S --first=S --reset --pressure=X --bosshp=X --mortal`.
 Testing: `?stage=N` in the URL starts runs at stage N. `npm run sim [runs]` plays full runs with a bot (no extra deps).

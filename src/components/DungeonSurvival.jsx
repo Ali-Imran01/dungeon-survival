@@ -14,21 +14,22 @@ const ui = {
   btn: { font:"inherit", fontSize:10, padding:"9px 14px", background:"#5b3f8c", color:"#fff", border:"2px solid #120e1a", borderRadius:4, cursor:"pointer", textDecoration:"none", touchAction:"manipulation" },
   font: { fontFamily:"'Press Start 2P', ui-monospace, monospace", color:"#e8e4f5", userSelect:"none", WebkitUserSelect:"none", WebkitTouchCallout:"none", WebkitTapHighlightColor:"transparent" },
 };
-const gbs = {
-  shell: { maxWidth:400, margin:"0 auto", padding:"18px 18px 26px", background:"#d9d4ce", borderRadius:"14px 14px 56px 14px", color:"#3b2a5c", touchAction:"manipulation" },
-  land: { maxWidth:860, display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, padding:"12px 18px", borderRadius:"14px 14px 40px 14px" },
-  bezel: { background:"#4a4658", padding:"8px 12px 12px", borderRadius:"8px 8px 26px 8px" },
-  bezelTop: { display:"flex", alignItems:"center", gap:6, fontSize:7, color:"#a9a3bd", marginBottom:6 },
-  brand: { margin:"10px 4px 12px", fontSize:11, color:"#3b2a5c", fontStyle:"italic" },
-  controls: { display:"flex", justifyContent:"space-between", alignItems:"center", padding:"4px 4px 0" },
-  dpad: { position:"relative", width:120, height:120, touchAction:"none", flex:"none" },
-  armH: { position:"absolute", left:0, top:40, width:120, height:40, background:"#23202b", borderRadius:5 },
-  armV: { position:"absolute", left:40, top:0, width:40, height:120, background:"#23202b", borderRadius:5 },
-  ab: { position:"relative", width:128, height:100, transform:"rotate(-25deg)", flex:"none" },
-  round: { position:"absolute", width:52, height:52, borderRadius:"50%", background:"#a3285c", color:"#fff", border:"none", font:"inherit", fontSize:13, touchAction:"none" },
-  sel: { display:"flex", justifyContent:"center", gap:20, marginTop:18 },
-  pill: { width:54, height:14, borderRadius:8, background:"#8c8699", border:"none", transform:"rotate(-25deg)", touchAction:"manipulation" },
-  pillLbl: { fontSize:7, color:"#5a5470", marginTop:6, textAlign:"center" },
+// Mobile shell: PSP-style handheld, landscape only. The screen is the full 240x135 desktop resolution (16:9, same shape as a PSP screen).
+const U = "clamp(76px, 30dvh, 124px)";   // size of the D-pad / face-button clusters, scales with the phone's height
+const psp = {
+  body: { position:"relative", width:"100%", maxWidth:940, margin:"0 auto", boxSizing:"border-box", display:"flex", alignItems:"center", justifyContent:"space-between", gap:"1.6vw", padding:"1.6dvh 2.2vw", background:"linear-gradient(180deg,#2d2d36 0%,#17171d 45%,#0b0b10 100%)", borderRadius:28, boxShadow:"inset 0 2px 2px rgba(255,255,255,.2), inset 0 -3px 6px rgba(0,0,0,.6), 0 6px 18px rgba(0,0,0,.5)", touchAction:"manipulation" },
+  side: { flex:"1 1 0", minWidth:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"2.4dvh" },
+  screenWrap: { flex:"none", width:"min(58vw, calc((100dvh - 40px) * 1.7778))" },
+  bezel: { background:"#050507", padding:"1.1%", borderRadius:10, boxShadow:"0 0 0 2px #7d7f8c, inset 0 0 6px #000" },
+  title: { margin:"0.8dvh 0 0", fontSize:7, color:"#8a8aa0", textAlign:"center", letterSpacing:1 },
+  shoulder: { position:"absolute", top:-5, width:"15%", height:9, background:"linear-gradient(180deg,#3a3a45,#1d1d24)", borderRadius:"9px 9px 0 0", boxShadow:"inset 0 1px 1px rgba(255,255,255,.25)" },
+  dpad: { position:"relative", width:U, height:U, touchAction:"none", flex:"none" },
+  cluster: { position:"relative", width:U, height:U, flex:"none" },
+  face: { position:"absolute", width:"41%", height:"41%", borderRadius:"50%", background:"radial-gradient(circle at 35% 30%,#4a4a58,#22222b)", border:"1px solid #62627a", font:"inherit", fontFamily:"system-ui, sans-serif", fontSize:"clamp(14px, 4.4dvh, 22px)", lineHeight:1, padding:0, touchAction:"none", cursor:"pointer" },
+  pills: { display:"flex", gap:"3vw" },
+  pill: { width:34, height:10, borderRadius:6, background:"linear-gradient(180deg,#5a5a68,#33333d)", border:"none", transform:"rotate(-25deg)", touchAction:"manipulation", cursor:"pointer" },
+  pillLbl: { fontSize:6, color:"#8a8aa0", marginTop:5, textAlign:"center" },
+  rotate: { position:"fixed", inset:0, zIndex:50, background:"#0b0b10", color:"#e8e4f5", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:14, padding:20, textAlign:"center", fontSize:11, lineHeight:1.7 },
 };
 const buzz = (n = 8) => navigator.vibrate?.(n);
 
@@ -77,8 +78,10 @@ function BuildList({ owned, cls, compact }) {
 
 export default function DungeonSurvival({ projectsHref = "#projects", gameboy = undefined }) {
   const coarse = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
-  const gb = gameboy ?? coarse;
-  const [size, setSize] = useState(() => fitSize(gb));
+  const forcePsp = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("psp");   // ?psp=1 previews the mobile shell on desktop
+  const gb = gameboy ?? (coarse || forcePsp);   // "gb" = compact mobile shell (kept name; the `gameboy` prop still works)
+  const [size, setSize] = useState(() => fitSize(false));
+  useEffect(() => { document.documentElement.classList.toggle("psp", !!gb); return () => document.documentElement.classList.remove("psp"); }, [gb]);
   const [cls, setCls] = useState(() => { const c = load("wisp-class", "warden"); return CLASSES[c] ? c : "warden"; });
   const cv = useRef(null), g = useRef(null), keys = useRef(new Set()), touch = useRef(null), pad = useRef(null), dirRef = useRef(""), paused = useRef(false), onScreen = useRef(true);
   if (!g.current) g.current = newGame(cls);
@@ -99,7 +102,8 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
   const allTrophies = CLASS_KEYS.every(k => trophies[k]);
 
   const preview = k => { g.current = newGame(k); };
-  const openSelect = () => { audio.init(); sfx("click"); preview(cls); setState("select"); };
+  const openSelect = () => { audio.init(); sfx("click"); if (gb) { try { window.screen.orientation?.lock?.("landscape")?.catch?.(() => {}); } catch {} }   /* only succeeds in fullscreen on Android */
+    preview(cls); setState("select"); };
   const cycle = d => { const i = (CLASS_KEYS.indexOf(cls) + d + CLASS_KEYS.length) % CLASS_KEYS.length, k = CLASS_KEYS[i]; sfx("click"); setCls(k); preview(k); };
   const devUnlock = typeof window !== "undefined" && (new URLSearchParams(window.location.search).has("unlock") || !!window.DS_UNLOCK_ALL);   // ?unlock=1 unlocks every class (testing)
   const isLocked = k => !!UNLOCK[k] && !trophies[UNLOCK[k]] && !devUnlock;
@@ -132,7 +136,7 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
   }, []);
 
   useEffect(() => {
-    const on = () => { setLand(window.innerWidth > window.innerHeight); if (state !== "play") { setSize(fitSize(gb)); g.current = newGame(cls); } };
+    const on = () => { setLand(window.innerWidth > window.innerHeight); if (state !== "play") { setSize(fitSize(false)); g.current = newGame(cls); } else if (gb && window.innerWidth <= window.innerHeight && !paused.current) { paused.current = true; setPaused(true); setTab("resume"); } };   // portrait mid-run: pause
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, [state, gb, cls]);
@@ -145,7 +149,7 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
       const G = g.current;
       if (onScreen.current && !document.hidden) {
         if (state === "play") { if (!paused.current) step(G, dt, keys.current, touch.current || pad.current); } else orbit(G, now / 1000);
-        draw(ctx, G, now, state === "play" ? touch.current : null, gb ? "A" : "SPC", state === "play");
+        draw(ctx, G, now, state === "play" ? touch.current : null, gb ? "X" : "SPC", state === "play");
       }
       const live = state === "play" && !paused.current && !G.over && onScreen.current && !document.hidden;
       music.set(live && !G.pending ? musicTrack(G) : null);
@@ -234,7 +238,7 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
       <a style={{ ...ui.btn, background:"transparent", border:"2px solid #5b3f8c" }} href={projectsHref}>See my projects</a>
     </div>
   );
-  const ctrl = gb ? `D-pad move, A ${C.abilityName.toLowerCase()}, B pause` : coarse ? "Drag to move, second finger to use ability" : `WASD/arrows move, Space ${C.abilityName.toLowerCase()}, Esc pause`;
+  const ctrl = gb ? `D-pad move, X ${C.abilityName.toLowerCase()}, O pause` : coarse ? "Drag to move, second finger to use ability" : `WASD/arrows move, Space ${C.abilityName.toLowerCase()}, Esc pause`;
   const trophyRow = (
     <div style={{ display:"flex", gap:12, alignItems:"flex-end", justifyContent:"center" }}>
       {CLASS_KEYS.map(k => <div key={k} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:3, fontSize:6, color: trophies[k] ? "#f5c542" : "#6b6480" }}><PixelArt rows={TROPHY} pal={trophies[k] ? PAL : DIM} scale={gb ? 1.5 : 2} />{CLASSES[k].name}</div>)}
@@ -266,7 +270,7 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
                     <div style={{ fontSize: 9 }}>{u.name}</div><div style={{ fontSize: 6, lineHeight: 1.7, opacity: .85, minHeight: 30 }}>{describe(u, cls)}</div>
                     <div style={{ fontSize: 8, color: R.color, letterSpacing: 2 }}>{pips(u, have + 1)}</div></div>; })}
           </div>
-          <div style={{ fontSize: 6, opacity: .6 }}>{gb ? `D-pad ↑↓ · A choose · B reroll (${choice.rerolls})` : `R: Reroll (${choice.rerolls} left)`}</div>
+          <div style={{ fontSize: 6, opacity: .6 }}>{gb ? `D-pad ↑↓ · ✕ choose · □ reroll (${choice.rerolls})` : `R: Reroll (${choice.rerolls} left)`}</div>
           {!gb && <><div style={{ fontSize: 6, opacity: .5, marginTop: 4 }}>YOUR BUILD</div><BuildStrip owned={choice.owned} /></>}
         </div>
       )}
@@ -345,43 +349,46 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
     </section>
   );
 
-  const arm = (k, st) => <div style={{ position:"absolute", ...st, background: dir.includes(k) ? "#4a4458" : "transparent", borderRadius:5 }} />;
+  const arm = (k, st) => <div style={{ position:"absolute", ...st, background: dir.includes(k) ? "#4a4a5c" : "transparent", borderRadius:5 }} />;
   const dpad = (
-    <div style={gbs.dpad} role="group" aria-label="Direction pad" onPointerDown={padDown} onPointerMove={padMove} onPointerUp={padUp} onPointerCancel={padUp}>
-      <div style={gbs.armH} /><div style={gbs.armV} />
-      {arm("u", { left:40, top:0, width:40, height:40 })}{arm("d", { left:40, top:80, width:40, height:40 })}
-      {arm("l", { left:0, top:40, width:40, height:40 })}{arm("r", { left:80, top:40, width:40, height:40 })}
-      <div style={{ position:"absolute", left:52, top:52, width:16, height:16, borderRadius:"50%", background:"#1a1720" }} />
+    <div style={psp.dpad} role="group" aria-label="Direction pad" onPointerDown={padDown} onPointerMove={padMove} onPointerUp={padUp} onPointerCancel={padUp}>
+      <div style={{ position:"absolute", left:0, top:"33.3%", width:"100%", height:"33.4%", background:"#1c1c24", borderRadius:6, boxShadow:"inset 0 1px 1px rgba(255,255,255,.18)" }} />
+      <div style={{ position:"absolute", left:"33.3%", top:0, width:"33.4%", height:"100%", background:"#1c1c24", borderRadius:6, boxShadow:"inset 0 1px 1px rgba(255,255,255,.18)" }} />
+      {arm("u", { left:"33.3%", top:0, width:"33.4%", height:"33.3%" })}{arm("d", { left:"33.3%", top:"66.7%", width:"33.4%", height:"33.3%" })}
+      {arm("l", { left:0, top:"33.3%", width:"33.3%", height:"33.4%" })}{arm("r", { left:"66.7%", top:"33.3%", width:"33.3%", height:"33.4%" })}
+      <div style={{ position:"absolute", left:"41%", top:"41%", width:"18%", height:"18%", borderRadius:"50%", background:"#0e0e14" }} />
     </div>
   );
-  const ab = (
-    <div style={gbs.ab}>
-      <button className="ww-btn" aria-label="B, pause or back" style={{ ...gbs.round, left:0, top:38 }} onPointerDown={e => { e.preventDefault(); buzz(); if (state === "select") { sfx("click"); setState("idle"); } else if (choice) reroll(); else togglePause(); }}>B</button>
-      <button className="ww-btn" aria-label={"A, " + C.abilityName} style={{ ...gbs.round, left:70, top:8 }} onPointerDown={e => { e.preventDefault(); buzz(12); audio.init(); if (state === "play") { if (choice) pick(sel); else if (!paused.current) triggerAbility(g.current); } else primary(); }}>A</button>
+  const btn = (label, glyph, color, pos, onDown, big) => (
+    <button className="ww-btn" aria-label={label} style={{ ...psp.face, ...pos, color }} onPointerDown={e => { e.preventDefault(); buzz(big ? 12 : 8); audio.init(); onDown(); }}>{glyph}</button>
+  );
+  // ✕ ability / confirm · ○ pause / back · □ reroll (level-up) · △ build tab
+  const faces = (
+    <div style={psp.cluster}>
+      {btn("Triangle, build and pause menu", "△", "#4ade80", { left:"29.5%", top:0 }, () => { if (state === "play" && !choice) togglePause("build"); })}
+      {btn("Square, reroll", "□", "#f472b6", { left:0, top:"29.5%" }, () => { if (state === "play" && choice) reroll(); })}
+      {btn("Circle, pause or back", "○", "#f87171", { left:"59%", top:"29.5%" }, () => { if (state === "select") { sfx("click"); setState("idle"); } else togglePause(); })}
+      {btn("Cross, " + C.abilityName, "✕", "#60a5fa", { left:"29.5%", top:"59%" }, () => { if (state === "play") { if (choice) pick(sel); else if (!paused.current) triggerAbility(g.current); } else primary(); }, true)}
     </div>
   );
   const pills = (
-    <div style={gbs.sel}>
-      <div><button className="ww-btn" aria-label="Select, go to projects" style={gbs.pill} onClick={() => { buzz(); window.location.href = projectsHref; }} /><div style={gbs.pillLbl}>Projects</div></div>
-      <div><button className="ww-btn" aria-label="Start" style={gbs.pill} onClick={() => state === "play" ? (buzz(), togglePause(isPaused ? "resume" : "build")) : primary()} /><div style={gbs.pillLbl}>Start</div></div>
+    <div style={psp.pills}>
+      <div><button className="ww-btn" aria-label="Select, go to projects" style={psp.pill} onClick={() => { buzz(); window.location.href = projectsHref; }} /><div style={psp.pillLbl}>Projects</div></div>
+      <div><button className="ww-btn" aria-label="Start, pause" style={psp.pill} onClick={() => state === "play" ? (buzz(), togglePause("resume")) : primary()} /><div style={psp.pillLbl}>Start</div></div>
     </div>
   );
 
   return (
-    <section aria-label="Mini game: Dungeon Survival" style={{ ...gbs.shell, ...(land ? gbs.land : {}), ...ui.font, color:"#3b2a5c" }}>
-      <style>{`.ww-btn{cursor:pointer}.ww-btn:active{filter:brightness(.8);transform:translateY(1px)}`}</style>
-      {land && dpad}
-      <div style={land ? { width:"min(56vw, calc((100dvh - 120px) * 1.11))", flex:"none" } : undefined}>
-        <div style={gbs.bezel}>
-          <div style={gbs.bezelTop}><span style={{ width:6, height:6, borderRadius:"50%", background: state === "play" && !isPaused ? "#ff3355" : "#5a2a34" }} />Soul power<span style={{ flex:1 }} />{soundBtn({ background:"#3a3648", color:"#c9c3dc", padding:"2px 6px", fontSize:7 })}</div>
-          {screen}
-        </div>
-        <div style={gbs.brand}>Dungeon Survival</div>
-        {land && pills}
+    <section aria-label="Mini game: Dungeon Survival" style={{ ...psp.body, ...ui.font }}>
+      <style>{`.ww-btn{cursor:pointer}.ww-btn:active{filter:brightness(.75);transform:translateY(1px)}`}</style>
+      <span style={{ ...psp.shoulder, left:"7%" }} /><span style={{ ...psp.shoulder, right:"7%" }} />
+      {!land && <div style={psp.rotate} role="alert"><div style={{ fontSize:30 }}>⟳</div><div>Rotate your phone</div><div style={{ fontSize:8, opacity:.7 }}>Dungeon Survival plays in landscape</div></div>}
+      <div style={psp.side}>{dpad}{soundBtn({ background:"#2a2a33", color:"#c9c3dc", padding:"3px 7px", fontSize:7 })}</div>
+      <div style={psp.screenWrap}>
+        <div style={psp.bezel}>{screen}</div>
+        <div style={psp.title}>Dungeon Survival</div>
       </div>
-      {!land && <div style={gbs.controls}>{dpad}{ab}</div>}
-      {!land && pills}
-      {land && ab}
+      <div style={psp.side}>{faces}{pills}</div>
     </section>
   );
 }
