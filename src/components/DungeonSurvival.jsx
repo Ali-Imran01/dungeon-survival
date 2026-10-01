@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { audio, sfx, music } from "./audio.js";
 import { PAL, DIM, TROPHY, spr, drawHero } from "./sprites.js";
 import { UPGRADES, UP_ICONS, RARITY, describe } from "./upgrades.js";
-import { CLASSES, CLASS_KEYS } from "./classes.js";
-import { W, H, fitSize, newGame, step, draw, orbit, triggerAbility, chooseUpgrade, rerollChoices, musicTrack, stageOf } from "./engine.js";
+import { CLASSES, CLASS_KEYS, UNLOCK } from "./classes.js";
+import { W, H, fitSize, newGame, step, draw, orbit, triggerAbility, chooseUpgrade, rerollChoices, musicTrack, stageOf, continueEndless } from "./engine.js";
 
 const ui = {
   bar: { position:"absolute", bottom:10, left:10, right:10, fontSize:9, pointerEvents:"none" },
@@ -40,13 +40,14 @@ function PixelArt({ rows, pal, scale = 4 }) {
   useEffect(() => { const c = ref.current.getContext("2d"); c.clearRect(0, 0, rows[0].length, rows.length); spr(c, rows, 0, 0, false, pal); }, [rows, pal]);
   return <canvas ref={ref} width={rows[0].length} height={rows.length} style={{ width: rows[0].length * scale, height: rows.length * scale, imageRendering: "pixelated" }} />;
 }
-function HeroPreview({ cls, scale = 4 }) {
+const LOCKED_PAL = new Proxy({}, { get: (_, k) => (k === "K" ? "#120e1a" : "#3a3448") });
+function HeroPreview({ cls, scale = 4, locked }) {
   const ref = useRef(null);
   useEffect(() => {
     const c = ref.current.getContext("2d"); let raf, t0 = performance.now();
-    const loop = now => { const k = (now - t0) % 2400; c.clearRect(0, 0, 22, 20); drawHero(c, cls, { x: 3, y: 2, face: 1, moving: k > 1600, atk: k > 1100 && k < 1400 ? 0.24 - (k - 1100) / 1250 : 0 }, now); raf = requestAnimationFrame(loop); };
+    const loop = now => { const k = (now - t0) % 2400; c.clearRect(0, 0, 22, 20); drawHero(c, cls, { x: 3, y: 2, face: 1, moving: k > 1600, atk: k > 1100 && k < 1400 ? 0.24 - (k - 1100) / 1250 : 0 }, now, locked ? LOCKED_PAL : undefined); raf = requestAnimationFrame(loop); };
     raf = requestAnimationFrame(loop); return () => cancelAnimationFrame(raf);
-  }, [cls]);
+  }, [cls, locked]);
   return <canvas ref={ref} width={22} height={20} style={{ width: 22 * scale, height: 20 * scale, imageRendering: "pixelated" }} />;
 }
 function StatBar({ label, v, c }) {
@@ -88,6 +89,7 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
   const [hud, setHud] = useState({ time: 0 });
   const [choice, setChoice] = useState(null), [sel, setSel] = useState(0), [tab, setTab] = useState("resume"), [result, setResult] = useState(null);
   const [bests, setBests] = useState(() => load("wisp-bests", {}));
+  const [endBests, setEndBests] = useState(() => load("wisp-endless", {}));   // best endless depth per class (loop*5 + stage)
   const [trophies, setTrophies] = useState(() => { const t = load("wisp-trophies", {}); if (load("wisp-trophy", 0) === 1) t.warden = true; return t; });
   const [newMaster, setNewMaster] = useState(false);
   const [sound, setSound] = useState(() => { const m = load("wisp-muted", 0) === 1; audio.setMuted(m); return !m; });
@@ -99,7 +101,10 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
   const preview = k => { g.current = newGame(k); };
   const openSelect = () => { audio.init(); sfx("click"); preview(cls); setState("select"); };
   const cycle = d => { const i = (CLASS_KEYS.indexOf(cls) + d + CLASS_KEYS.length) % CLASS_KEYS.length, k = CLASS_KEYS[i]; sfx("click"); setCls(k); preview(k); };
+  const devUnlock = typeof window !== "undefined" && (new URLSearchParams(window.location.search).has("unlock") || !!window.DS_UNLOCK_ALL);   // ?unlock=1 unlocks every class (testing)
+  const isLocked = k => !!UNLOCK[k] && !trophies[UNLOCK[k]] && !devUnlock;
   const start = (k = cls) => {
+    if (isLocked(k)) { audio.init(); sfx("hurt"); return; }
     audio.init(); sfx("click"); setCls(k); save("wisp-class", k);
     const devStage = Math.min(5, Math.max(1, +new URLSearchParams(window.location.search).get("stage") || 1));   // ?stage=N for testing
     g.current = newGame(k, devStage); touch.current = null; pad.current = null; paused.current = false; setPaused(false); setNewMaster(false);
@@ -140,7 +145,7 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
       const G = g.current;
       if (onScreen.current && !document.hidden) {
         if (state === "play") { if (!paused.current) step(G, dt, keys.current, touch.current || pad.current); } else orbit(G, now / 1000);
-        draw(ctx, G, now, state === "play" ? touch.current : null, gb ? "A" : "SPC");
+        draw(ctx, G, now, state === "play" ? touch.current : null, gb ? "A" : "SPC", state === "play");
       }
       const live = state === "play" && !paused.current && !G.over && onScreen.current && !document.hidden;
       music.set(live && !G.pending ? musicTrack(G) : null);
@@ -149,7 +154,9 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
         if (ck !== lastChoice) { lastChoice = ck; setChoice(pd ? { type: pd.type, choices: pd.choices, rerolls: G.rerolls, stage: G.stage, lv: G.lv, owned: { ...G.owned } } : null); setSel(0); }
         const h = `${Math.floor(G.t)}`; if (h !== lastHud) { lastHud = h; setHud({ time: Math.floor(G.t) }); }
         if (G.over) {
-          setResult({ cls: G.cls, stage: G.stage, phase: G.phase, score: G.score, time: Math.floor(G.t), lv: G.lv, owned: { ...G.owned }, stageName: stageOf(G).name });
+          const depth = G.loop * 5 + G.stage;
+          if (G.endless) setEndBests(b => { const n = { ...b, [G.cls]: Math.max(b[G.cls] || 0, depth) }; save("wisp-endless", n); return n; });
+          setResult({ endless: G.endless, loop: G.loop, depth, cls: G.cls, stage: G.stage, phase: G.phase, score: G.score, time: Math.floor(G.t), lv: G.lv, owned: { ...G.owned }, stageName: stageOf(G).name });
           setState(G.won ? "win" : "over");
           if (G.won) setTrophies(t => { const n = { ...t, [G.cls]: true }; save("wisp-trophies", n); if (CLASS_KEYS.every(k => n[k]) && !CLASS_KEYS.every(k => t[k])) setNewMaster(true); return n; });
           setBests(b => { const n = { ...b, [G.cls]: Math.max(b[G.cls] || 0, G.score) }; save("wisp-bests", n); return n; });
@@ -288,35 +295,36 @@ export default function DungeonSurvival({ projectsHref = "#projects", gameboy = 
           <div style={{ display:"flex", alignItems:"center", gap: gb ? 8 : 14 }}>
             <button aria-label="Previous class" style={{ ...ui.btn, padding:"6px 9px" }} onClick={() => cycle(-1)}>◀</button>
             <div style={{ display:"flex", alignItems:"center", gap: gb ? 8 : 12 }}>
-              <HeroPreview cls={cls} scale={gb ? 3 : 4} />
+              <HeroPreview cls={cls} scale={gb ? 3 : 4} locked={isLocked(cls)} />
               <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-                <div style={{ fontSize:12, color:C.color, textAlign:"left" }}>{C.name}{trophies[cls] ? " ★" : ""}</div>
+                <div style={{ fontSize:12, color: isLocked(cls) ? "#6b6480" : C.color, textAlign:"left" }}>{C.name}{trophies[cls] ? " ★" : ""}{isLocked(cls) ? " 🔒" : ""}</div>
                 <div style={{ fontSize:7, opacity:.75, textAlign:"left" }}>{C.role} · {C.abilityName} · {C.companionName}</div>
                 {Object.entries(C.stats).map(([l, v]) => <StatBar key={l} label={l} v={v} c={C.color} />)}
               </div>
             </div>
             <button aria-label="Next class" style={{ ...ui.btn, padding:"6px 9px" }} onClick={() => cycle(1)}>▶</button>
           </div>
-          <div style={{ fontSize:8, maxWidth:300, opacity:.9 }}>{C.desc}</div>
+          <div style={{ fontSize:8, maxWidth:300, opacity:.9, color: isLocked(cls) ? "#ffd166" : undefined }}>{isLocked(cls) ? `Locked. Win a run with the ${CLASSES[UNLOCK[cls]].name} to unlock the ${C.name}.` : C.desc}</div>
           {!gb && <div style={{ fontSize:7, opacity:.6 }}>{ctrl}</div>}
-          <button style={ui.btn} onClick={() => start()}>{gb ? "A: Choose" : "Choose " + C.name}</button>
+          <button disabled={isLocked(cls)} style={{ ...ui.btn, ...(isLocked(cls) ? { background:"#2a2338", color:"#6b6480", cursor:"not-allowed" } : {}) }} onClick={() => start()}>{isLocked(cls) ? "Locked" : gb ? "A: Choose" : "Choose " + C.name}</button>
         </div>
       )}
       {state === "win" && result && (
         <div style={ui.overlay}>
           <PixelArt rows={TROPHY} pal={PAL} scale={gb ? 3 : 4} />
           <div style={{ fontSize:11, color:"#f5c542" }}>{CLASSES[result.cls].name} trophy earned</div>
-          {newMaster && <div style={{ color:"#f5c542" }}>All 3 trophies: Master of Souls!</div>}
+          {newMaster && <div style={{ color:"#f5c542" }}>All {CLASS_KEYS.length} trophies: Master of Souls!</div>}
           <div style={{ fontSize: 7 }}>Hollow Lord defeated · {result.score} pts · {Math.floor(result.time / 60)}:{String(result.time % 60).padStart(2, "0")} · Lv {result.lv}</div>
           <BuildStrip owned={result.owned} scale={gb ? 1.5 : 2} />
+          <button style={{ ...ui.btn, background:"#5b3f8c" }} onClick={() => { audio.init(); sfx("click"); continueEndless(g.current); setResult(null); setState("play"); cv.current?.focus(); }}>Continue into Endless{endBests[result.cls] ? ` (best ${endBests[result.cls]})` : ""}</button>
           {btnRow}
         </div>
       )}
       {state === "over" && result && (
         <div style={ui.overlay}>
           <div style={{ fontSize:12, color: "#ffd166" }}>RUN OVER</div>
-          <div style={{ fontSize: 7 }}>Stage {result.stage}-{result.phase + 1} {result.stageName} · {result.score} pts · {Math.floor(result.time / 60)}:{String(result.time % 60).padStart(2, "0")} · Lv {result.lv}</div>
-          <div style={{ fontSize: 7, opacity: .7 }}>{CLASSES[result.cls].name} best: {bests[result.cls] || 0}</div>
+          <div style={{ fontSize: 7 }}>{result.endless ? `Loop ${result.loop + 1} · ` : ""}Stage {result.stage}-{result.phase + 1} {result.stageName} ·{result.score} pts · {Math.floor(result.time / 60)}:{String(result.time % 60).padStart(2, "0")} · Lv {result.lv}</div>
+          <div style={{ fontSize: 7, opacity: .7 }}>{CLASSES[result.cls].name} best: {bests[result.cls] || 0}{result.endless ? ` · endless depth ${result.depth} (best ${endBests[result.cls] || 0})` : ""}</div>
           <BuildStrip owned={result.owned} scale={gb ? 1.5 : 2} />
           {btnRow}
         </div>

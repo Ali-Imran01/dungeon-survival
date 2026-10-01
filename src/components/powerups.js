@@ -13,6 +13,12 @@ export const PU = {
   pierce:    { name: "Piercing",    c: "#ff9aa5", timed: true, cls: "ranger" },
   overload:  { name: "Overload",    c: "#5ef2ff", timed: true, cls: "mage" },
   nova:      { name: "Frost nova",  c: "#b9d0ff", timed: true, cls: "mage" },
+  slowmo:    { name: "Slow Motion", c: "#b9d0ff", timed: true, cls: "chronomancer" },
+  overclock: { name: "Overclock",   c: "#f5c542", timed: true, cls: "chronomancer" },
+  phantom:   { name: "Phantom",     c: "#eef2fa", timed: true, cls: "assassin" },
+  bloodrush: { name: "Bloodrush",   c: "#d9433a", timed: true, cls: "assassin" },
+  bottomless:{ name: "Bottomless",  c: "#ffd166", timed: true, cls: "gunner" },
+  buckshot:  { name: "Deadshot",    c: "#ff4a6a", timed: true, cls: "gunner" },
 };
 
 // 0 when inactive, otherwise 1 / 1.5 / 1.75 by level

@@ -9,12 +9,13 @@ export const LAVA = {
   slime: { g:"#d9433a", G:"#ffb26b" },
   vent: { cycle: 6, warnAt: 3.5, eruptAt: 4.5, r: 9, dmgEnemy: 2 },   // seconds; player takes 1 heart (normal i-frames)
 };
-const lightXs = W => W > 200 ? [Math.round(W * 0.2), Math.round(W / 2), Math.round(W * 0.8)] : [Math.round(W * 0.25), Math.round(W * 0.75)];
+const LIGHTS = [[[0.2, 0.5, 0.8], [0.25, 0.75]], [[0.35, 0.65], [0.5]], [[0.15, 0.38, 0.62, 0.85], [0.2, 0.5, 0.8]]];   // per room: [desktop, Game Boy]
+const lightXs = (W, room = 0) => LIGHTS[room][W > 200 ? 0 : 1].map(f => Math.round(W * f));
 
 // returns { cv, vents } ; vents = [{x, y, off}] (off = phase offset in seconds)
-export function buildLava(W, H, WALL, TILE = 12, doc = document) {
+export function buildLava(W, H, WALL, TILE = 12, doc = document, room = 0) {
   const P = LAVA.pal, cv = doc.createElement("canvas"); cv.width = W; cv.height = H;
-  const c = cv.getContext("2d"), r = rng(41), px = (x, y, col, w = 1, h = 1) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+  const c = cv.getContext("2d"), r = rng(41 + room * 13), px = (x, y, col, w = 1, h = 1) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
   for (let ty = WALL; ty < H; ty += TILE) for (let tx = 0; tx < W; tx += TILE) {
     px(tx, ty, ((tx / TILE) + ((ty - WALL) / TILE)) % 2 ? P.floorB : P.floorA, TILE, TILE);
     px(tx, ty, P.grout, TILE, 1); px(tx, ty, P.grout, 1, TILE);
@@ -41,7 +42,7 @@ export function buildLava(W, H, WALL, TILE = 12, doc = document) {
   }
   px(0, 0, P.wallTop, W, 2); px(0, 2, P.mortar, W, 1); px(0, WALL - 2, P.grout, W, 2); px(0, WALL, "#140c0d", W, 2);
   for (let x = 12; x < W; x += 30 + (r() * 20 | 0)) { const len = 3 + (r() * 5 | 0); for (let y = 0; y < len; y++) px(x + (y % 2), WALL + y, P.chain); }   // hanging chains
-  for (const lx of lightXs(W)) { px(lx - 5, 4, P.bowl, 11, 3); px(lx - 4, 7, P.bowl, 9, 1); px(lx - 1, 8, P.bowl, 3, 4); px(lx - 6, 3, "#5a3634", 13, 1); }   // braziers
+  for (const lx of lightXs(W, room)) { px(lx - 5, 4, P.bowl, 11, 3); px(lx - 4, 7, P.bowl, 9, 1); px(lx - 1, 8, P.bowl, 3, 4); px(lx - 6, 3, "#5a3634", 13, 1); }   // braziers
   return { cv, vents };
 }
 
@@ -50,9 +51,9 @@ export function ventState(v, t) { const { cycle, warnAt, eruptAt } = LAVA.vent, 
 export const inVent = (v, x, y) => ((x - v.x) / LAVA.vent.r) ** 2 + ((y - v.y) / (LAVA.vent.r * 0.6)) ** 2 < 1;
 
 // animated: brazier fire, vents, rising embers (call every frame after bg)
-export function drawLavaAmbient(ctx, W, H, WALL, now, vents, t) {
+export function drawLavaAmbient(ctx, W, H, WALL, now, vents, t, room = 0) {
   const P = LAVA.pal, f = Math.floor(now / 110) % 3;
-  for (const lx of lightXs(W)) {
+  for (const lx of lightXs(W, room)) {
     ctx.fillStyle = P.fireDeep; ctx.fillRect(lx - 4, 2, 9, 2);
     ctx.fillStyle = P.fire; ctx.fillRect(lx - 3, 0 - (f === 1), 7, 3); ctx.fillRect(lx - 1 + (f - 1), -1, 2, 1);
     ctx.fillStyle = P.fireHot; ctx.fillRect(lx - 1, 1, 3, 2);

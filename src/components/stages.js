@@ -15,9 +15,13 @@ export const KILLS_NEED = [15, 18, 22];        // kills to trigger miniboss 1, m
 export const PHASE_FALLBACK = 75;              // seconds: boss comes anyway
 export const SPAWN_BASE = [1.15, 1.0, 0.9, 0.85, 0.8];  // seconds between spawns at phase 0, per stage (−12% per phase)
 
+export const LOOP = { hp: 0.25, speed: 0.05, speedCap: 1.5, spawn: 0.92 };   // endless: per-lap scaling (loop 0 = campaign)
+
+export const GATE = { delay: 0.6, cap: 14, capGB: 9, sideTime: 7 };   // spawn telegraph (s), max live regular enemies (desktop / Game Boy), seconds before the spawn sides rotate
+
 export const STAGES = [
   { n: 1, key: "dungeon", name: "Dungeon", accent: "#9b7fd9", music: 1.0,
-    build: (W, H, WALL, doc) => buildDungeon(W, H, WALL, 12, doc), ambient: (ctx, g, W, H, WALL, now) => drawDungeonAmbient(ctx, W, H, WALL, now),
+    build: (W, H, WALL, doc, g) => buildDungeon(W, H, WALL, 12, doc, g?.room || 0), ambient: (ctx, g, W, H, WALL, now) => drawDungeonAmbient(ctx, W, H, WALL, now, g.room),
     slimePal: { ...PAL, ...DUNGEON.slime },
     spawn: [["slime", 1]],
     minis: [
@@ -28,7 +32,7 @@ export const STAGES = [
       phases: [{ at: 0.5, atk: ["chainHook", "ballSwing", "ballThrow", "releasePrisoners"], enter: "riot" }], bc: "#d4a82a" } },
 
   { n: 2, key: "ice", name: "Ice Cave", accent: "#7fb0dd", music: 0.95, rule: "ice",
-    build: (W, H, WALL, doc) => buildIce(W, H, WALL, 12, doc), ambient: (ctx, g, W, H, WALL, now) => drawIceAmbient(ctx, W, H, WALL, now),
+    roomTint: "#7a5cff", build: (W, H, WALL, doc, g) => buildIce(W, H, WALL, 12, doc, g?.room || 0), ambient: (ctx, g, W, H, WALL, now) => drawIceAmbient(ctx, W, H, WALL, now, g.room),
     slimePal: { ...PAL, ...ICE.slime },
     spawn: [["slime", 0.6], ["bat", 0.4]],
     minis: [
@@ -39,7 +43,7 @@ export const STAGES = [
       phases: [{ at: 0.5, atk: ["frostRing", "icicleRain", "spiral", "summonBats"], enter: "whiteout" }], bc: "#b8e3ff" } },
 
   { n: 3, key: "lava", name: "Lava Forge", accent: "#ff8a2a", music: 1.05, rule: "lava",
-    build: (W, H, WALL, doc) => buildLava(W, H, WALL, 12, doc), ambient: (ctx, g, W, H, WALL, now) => drawLavaAmbient(ctx, W, H, WALL, now, g.biome.vents, g.ventT),
+    roomTint: "#ff2a2a", build: (W, H, WALL, doc, g) => buildLava(W, H, WALL, 12, doc, g?.room || 0), ambient: (ctx, g, W, H, WALL, now) => drawLavaAmbient(ctx, W, H, WALL, now, g.biome.vents, g.ventT, g.room),
     slimePal: { ...PAL, ...LAVA.slime },
     spawn: [["magma", 0.7], ["imp", 0.3]],
     minis: [
@@ -50,7 +54,7 @@ export const STAGES = [
       phases: [{ at: 0.5, atk: ["eruption", "meteors", "breath", "eruption"], enter: "eruption" }], bc: "#d9433a" } },
 
   { n: 4, key: "crypt", name: "Flooded Crypt", accent: "#7dff9a", music: 0.9, rule: "water",
-    build: (W, H, WALL, doc, g) => buildCrypt(W, H, WALL, 12, doc, g?.biomeGrow || 1), ambient: (ctx, g, W, H, WALL, now) => drawCryptAmbient(ctx, W, H, WALL, now, g.biome.pools),
+    roomTint: "#2affb0", build: (W, H, WALL, doc, g) => buildCrypt(W, H, WALL, 12, doc, g?.biomeGrow || 1, g?.room || 0), ambient: (ctx, g, W, H, WALL, now) => drawCryptAmbient(ctx, W, H, WALL, now, g.biome.pools, g.room),
     slimePal: { ...PAL, g: "#6f8f7a", G: "#a8c8a0" },
     spawn: [["skeleton", 0.6], ["drowned", 0.4]],
     minis: [
@@ -61,7 +65,7 @@ export const STAGES = [
       phases: [{ at: 0.5, atk: ["pull", "soulChains", "poolBlink", "boneSpears", "raiseDead"], enter: "flood" }], bc: "#7dff9a" } },
 
   { n: 5, key: "void", name: "The Void", accent: "#b06bff", music: 1.1, rule: "dark",
-    build: (W, H, WALL, doc) => buildVoid(W, H, WALL, 12, doc), ambient: (ctx, g, W, H, WALL, now) => drawVoidAmbient(ctx, W, H, WALL, now),
+    roomTint: "#ff4fd8", build: (W, H, WALL, doc, g) => buildVoid(W, H, WALL, 12, doc, g?.room || 0), ambient: (ctx, g, W, H, WALL, now) => drawVoidAmbient(ctx, W, H, WALL, now),
     slimePal: { ...PAL, g: "#5b3f8c", G: "#8a6fd1" },
     spawn: [["shade", 0.65], ["eye", 0.35]],
     minis: [

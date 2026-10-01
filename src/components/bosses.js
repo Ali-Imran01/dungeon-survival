@@ -9,10 +9,12 @@ import { INGOT, FIREBALL } from "./biomes/lava_enemies.js";
 import { TRIDENT, SOUL_SKULL } from "./biomes/crypt_enemies.js";
 import { W, H, WALL, clamp, burst, hurt, shootE, addHz, after, msg, pc } from "./engine.js";
 import { spawnEnemy, spawnAt, ENEMIES } from "./enemies.js";
+import { LOOP } from "./stages.js";
 
 export function spawnBoss(g, def) {
   const w = def.mirror ? 16 : def.spr[0].length, h = def.mirror ? 16 : def.spr.length;
-  g.boss = { def, x: W / 2 - w / 2, y: WALL - h, w, h, hp: def.hp, max: def.hp, mode: "enter", enterT: 0.8, act: null, queue: [], walkT: 1.2, ai: 0,
+  const hp = Math.ceil(def.hp * (1 + LOOP.hp * g.loop));
+  g.boss = { def, x: W / 2 - w / 2, y: WALL - h, w, h, hp, max: hp, mode: "enter", enterT: 0.8, act: null, queue: [], walkT: 1.2, ai: 0,
              atk: def.atk, phaseI: 0, spdMul: 1, hit: 0, slow: 0, dx: 0, dy: 1, face: 1, scatterI: 0, st: 0, sa: 0 };
   msg(g, def.name + " appears", 2); sfx("bossIn");
 }
@@ -22,6 +24,9 @@ const bc = b => [b.x + b.w / 2, b.y + b.h / 2];
 function aim(g, b) { const [x, y] = bc(b), [px, py] = pc(g), d = Math.hypot(px - x, py - y) || 1; b.dx = (px - x) / d; b.dy = (py - y) / d; return Math.atan2(py - y, px - x); }
 const aimA = (g, b) => { const [x, y] = bc(b), [px, py] = pc(g); return Math.atan2(py - y, px - x); };
 const near = (g, r) => { const [px, py] = pc(g), a = Math.random() * 6.283, d = Math.random() * r; return [px + Math.cos(a) * d, py + Math.sin(a) * d * 0.7]; };
+// wind/rest/once/charge build "acts" — the smallest unit stepBoss consumes. stand freezes movement (a windup or
+// rest beat), flash blinks the boss white, mul multiplies damage taken during the act (e.g. briefly vulnerable
+// mid-charge), shield blocks shots from the front (checked in stepShots, engine.js).
 const wind = (t = 0.5, o = {}) => ({ t, stand: true, flash: true, ...o });
 const rest = (t = 0.5) => ({ t, stand: true });
 const once = end => ({ t: 0, stand: true, end });
@@ -40,6 +45,9 @@ const blinkNear = (g, b) => { const [px, py] = pc(g); teleport(g, b, px + (Math.
 const segDist = (px, py, x1, y1, x2, y2) => { const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy || 1, t = clamp(((px - x1) * dx + (py - y1) * dy) / l2, 0, 1); return Math.hypot(px - x1 - t * dx, py - y1 - t * dy); };
 
 // ---------- attack library ----------
+// Every entry is (g,b) => [...acts] — an "attack" is nothing but an array of acts assembled from the combinators
+// above, plus a few one-off inline acts for bespoke behavior (spiral, soulStorm, ...). stepBoss just walks the
+// array; adding attack #46 means composing existing pieces, not touching the interpreter below.
 const ATK = {
   charge: (g, b) => charge(g, b),
   lunge: (g, b) => charge(g, b, { dur: 0.3, cs: 120 }),
@@ -105,11 +113,14 @@ const ATK = {
       for (let k = 0; k < 18; k++) { const a = k / 18 * 6.283; if ([b.sa, b.sa + Math.PI].some(ga => Math.abs(Math.atan2(Math.sin(a - ga), Math.cos(a - ga))) < 0.4)) continue; shootE(g, x, y, a, 55, { c: b.def.bc }); }
       sfx("bossShot"); } }, rest(0.8)],
   // Mirror Self: copies the player's class
-  mirrorAttack: (g, b) => g.cls === "warden" ? charge(g, b, { wind: 0.4, dur: 0.3, cs: 150, after: [once((g, b) => { const [x, y] = bc(b); addHz(g, { k: "circle", x, y, r: 20, delay: 0.15, c: "#ff4fd8" }); }), rest(0.4)] })
+  mirrorAttack: (g, b) => g.cls === "assassin" ? ATK.blink(g, b)
+    : g.cls === "chronomancer" ? [wind(0.3, { end: (g, b) => fan(g, b, 1, 0, 90, { c: "#4ab3ba" }) }), { t: 0.7, stand: true, end: (g, b) => fan(g, b, 1, 0, 90, { c: "#4ab3ba" }) }, rest(0.4)]
+    : g.cls === "warden" ? charge(g, b, { wind: 0.4, dur: 0.3, cs: 150, after: [once((g, b) => { const [x, y] = bc(b); addHz(g, { k: "circle", x, y, r: 20, delay: 0.15, c: "#ff4fd8" }); }), rest(0.4)] })
     : g.cls === "ranger" ? [wind(0.3, { end: (g, b) => fan(g, b, 3, 0.15, 110, { c: "#ff4fd8" }) }), { t: 0.3, stand: true, end: (g, b) => fan(g, b, 3, 0.15, 110, { c: "#ff4fd8" }) }, rest(0.3)]
+    : g.cls === "gunner" ? [wind(0.3, { end: (g, b) => fan(g, b, 3, 0.1, 120, { c: "#ff4fd8" }) }), { t: 0.18, stand: true, end: (g, b) => fan(g, b, 3, 0.1, 120, { c: "#ff4fd8" }) }, rest(0.35)]
     : [wind(0.4, { end: (g, b) => fan(g, b, 2, 0.4, 50, { c: "#ff4fd8", size: 2, home: 2, l: 3 }) }), rest(0.4)],
   mirrorAbility: (g, b) => [...(g.cls === "warden" ? charge(g, b, { wind: 0.2, dur: 0.25, cs: 190, after: [] })
-    : g.cls === "ranger" ? [{ t: 0.25, tick: (g, b, dt) => { const a = aimA(g, b) + Math.PI; b.x += Math.cos(a) * 170 * dt; b.y += Math.sin(a) * 170 * dt; }, end: (g, b) => fan(g, b, 1, 0, 110, { c: "#ff4fd8" }) }]
+    : (g.cls === "ranger" || g.cls === "gunner") ? [{ t: 0.25, tick: (g, b, dt) => { const a = aimA(g, b) + Math.PI; b.x += Math.cos(a) * 170 * dt; b.y += Math.sin(a) * 170 * dt; }, end: (g, b) => fan(g, b, 1, 0, 110, { c: "#ff4fd8" }) }]
     : [once((g, b) => { const [px, py] = pc(g), [x, y] = bc(b), a = Math.atan2(y - py, x - px); teleport(g, b, x + Math.cos(a) * 40, y + Math.sin(a) * 30); })]),
     { t: 1, stand: true, mul: 2, pant: true }],
 };
@@ -126,7 +137,8 @@ function enterPhase(g, b, kind) {
 
 export function stepBoss(g, dt, cx, cy) {
   const b = g.boss; if (!b) return;
-  b.hit -= dt; b.slow -= dt;
+  b.hit -= dt; b.slow -= dt; if (b.mark > 0) b.mark -= dt; if (b.stasis > 0) b.stasis -= dt;
+  if (b.stun > 0) { b.stun -= dt; return; }                    // staggered by an armour blast
   if (b.mode === "enter") { b.y += 30 * dt; if ((b.enterT -= dt) <= 0) b.mode = "fight"; return; }
   const ph = b.def.phases?.[b.phaseI];
   if (ph && b.hp <= b.max * ph.at) { b.phaseI++; b.atk = ph.atk; b.ai = 0; b.queue = []; if (b.act) { b.act.end?.(g, b); b.act = null; } enterPhase(g, b, ph.enter); }
@@ -135,7 +147,9 @@ export function stepBoss(g, dt, cx, cy) {
     for (let i = 0; i < 4; i++) spawnEnemy(g, "rat", x - 4 + Math.cos(i * 1.57) * 10, y + Math.sin(i * 1.57) * 8, { summon: true, xp: 0, healer: 5 });
     msg(g, "Kill the rats before they return!", 1.6);
   }
-  const sl = b.slow > 0 ? 0.75 : 1, [bx, by] = bc(b), ax = cx - bx, ay = cy - by, d = Math.hypot(ax, ay) || 1;
+  const sl = (b.slow > 0 ? 0.75 : 1) * g.ts * (b.stasis > 0 ? 0.7 : 1), [bx, by] = bc(b), ax = cx - bx, ay = cy - by, d = Math.hypot(ax, ay) || 1;
+  // generic act interpreter: doesn't know or care which attack is running, just pulls the next act off b.queue,
+  // ticks it every frame, and advances (calling end()) once its timer runs out — see the block right below
   if (!b.act && b.queue.length) { b.act = b.queue.shift(); b.act.start?.(g, b); }
   if (b.act) {
     const A = b.act; A.t -= dt * b.spdMul;

@@ -7,12 +7,13 @@ export const ICE = {
          icicle:"#b8e3ff", icicleLo:"#7fb0dd", crystal:"#5ef2ff", crystalCore:"#e8ffff", glow:"#2e4f7a", snow:"#e8f4ff" },
   slime: { g:"#7fc8e8", G:"#d8f3ff" },
 };
-const lightXs = W => W > 200 ? [Math.round(W * 0.2), Math.round(W / 2), Math.round(W * 0.8)] : [Math.round(W * 0.25), Math.round(W * 0.75)];
+const LIGHTS = [[[0.2, 0.5, 0.8], [0.25, 0.75]], [[0.35, 0.65], [0.5]], [[0.15, 0.38, 0.62, 0.85], [0.2, 0.5, 0.8]]];   // per room: [desktop, Game Boy]
+const lightXs = (W, room = 0) => LIGHTS[room][W > 200 ? 0 : 1].map(f => Math.round(W * f));
 
 // returns { cv, patches } ; patches = [{x, y, rx, ry}] used by the slide rule
-export function buildIce(W, H, WALL, TILE = 12, doc = document) {
+export function buildIce(W, H, WALL, TILE = 12, doc = document, room = 0) {
   const P = ICE.pal, cv = doc.createElement("canvas"); cv.width = W; cv.height = H;
-  const c = cv.getContext("2d"), r = rng(23), px = (x, y, col, w = 1, h = 1) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+  const c = cv.getContext("2d"), r = rng(23 + room * 13), px = (x, y, col, w = 1, h = 1) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
   // floor tiles
   for (let ty = WALL; ty < H; ty += TILE) for (let tx = 0; tx < W; tx += TILE) {
     px(tx, ty, ((tx / TILE) + ((ty - WALL) / TILE)) % 2 ? P.floorB : P.floorA, TILE, TILE);
@@ -46,14 +47,14 @@ export function buildIce(W, H, WALL, TILE = 12, doc = document) {
   // icicles hanging over the floor edge
   for (let x = 1; x < W; x += 2 + (r() * 4 | 0)) { const len = 1 + (r() * 4 | 0); px(x, WALL, P.icicleLo, 1, len); px(x, WALL, P.icicle, 1, Math.max(1, len - 1)); }
   // crystal lamp sockets
-  for (const lx of lightXs(W)) { px(lx - 5, 3, P.glow, 10, 8); px(lx - 3, 2, "#3a6190", 6, 10); }
+  for (const lx of lightXs(W, room)) { px(lx - 5, 3, P.glow, 10, 8); px(lx - 3, 2, "#3a6190", 6, 10); }
   return { cv, patches };
 }
 
 // animated: crystal lamps + drifting snow (call every frame after bg)
-export function drawIceAmbient(ctx, W, H, WALL, now) {
+export function drawIceAmbient(ctx, W, H, WALL, now, room = 0) {
   const P = ICE.pal, f = Math.floor(now / 180) % 4;
-  for (const lx of lightXs(W)) {
+  for (const lx of lightXs(W, room)) {
     ctx.fillStyle = P.crystal; ctx.fillRect(lx - 2, 5, 1, 3); ctx.fillRect(lx, 3, 1, 5); ctx.fillRect(lx + 2, 4, 1, 4);
     ctx.fillStyle = P.crystalCore; ctx.fillRect(lx, 4 + (f % 2), 1, 1);
     if (f === 0) { ctx.fillRect(lx - 3, 3, 1, 1); ctx.fillRect(lx + 3, 2, 1, 1); }

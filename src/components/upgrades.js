@@ -32,7 +32,7 @@ export const UPGRADES = [
   { id:"guardian",  name:"Guardian Spark", rarity:"rare",   max:2, desc:"Gain a shield every 30s (20s at II)", fx:{ shieldEvery:[30, 20] } },
   { id:"secondWind",name:"Second Wind",    rarity:"rare",   max:1, desc:"Once per stage, survive a lethal hit", fx:{ cheatDeath:1 } },
   { id:"harvest",   name:"Soul Harvest",   rarity:"rare",   max:2, desc:"Heal 1 heart every 40 kills (30 at II)", fx:{ healEvery:[40, 30] } },
-  { id:"bond",      name:"Companion Bond", rarity:"rare",   max:2, desc:{ warden:"Wisp fires 2 shots", ranger:"Hawk swoops twice", mage:"Familiar +1 charge" }, fx:{ companion:1 } },
+  { id:"bond",      name:"Companion Bond", rarity:"rare",   max:2, desc:{ warden:"Wisp fires 2 shots", ranger:"Hawk swoops twice", mage:"Familiar +1 charge", assassin:"Cat marks 2 enemies per pounce", gunner:"Bomb Buddy explodes for +1 dmg", chronomancer:"Stasis bubbles last 1.5s longer" }, fx:{ companion:1 } },
   // Warden
   { id:"wideArc",   cls:"warden", name:"Wide Arc",      rarity:"common", max:3, desc:"+20° swing arc, +3 reach",          fx:{ arc:20, reach:3 } },
   { id:"guardDash", cls:"warden", name:"Guarded Dash",  rarity:"rare",   max:1, desc:"Dashing gives a shield for 1.5s",  fx:{ dashShield:1.5 } },
@@ -47,6 +47,21 @@ export const UPGRADES = [
   { id:"bigSplash", cls:"mage",   name:"Big Splash",    rarity:"common", max:3, desc:"+15% splash radius",               fx:{ splash:0.15 } },
   { id:"deepFreeze",cls:"mage",   name:"Deep Freeze",   rarity:"rare",   max:1, desc:"Chill lasts 2s and slows more",    fx:{ chillTime:2, chillMul:0.4 } },
   { id:"splitOrb",  cls:"mage",   name:"Split Orb",     rarity:"epic",   max:1, desc:"Orbs split into 2 on hit",         fx:{ split:2 } },
+  // Chronomancer
+  { id:"longEcho",    cls:"chronomancer", name:"Long Echo",    rarity:"common", max:3, desc:"Echoes deal +25% damage",                    fx:{ echo:1 } },
+  { id:"chronoShield",cls:"chronomancer", name:"Chrono Shield",rarity:"rare",   max:1, desc:"Rewind also grants 1.5s invulnerability",     fx:{ rewindShield:1 } },
+  { id:"replay",      cls:"chronomancer", name:"Replay",       rarity:"epic",   max:1, desc:"Enemies you hit take 30% of it again 2s later", fx:{ replay:1 } },
+  { id:"twinBubbles", cls:"chronomancer", name:"Twin Bubbles", rarity:"epic",   max:1, desc:"The Sandling drops two stasis bubbles",       fx:{ bubbles:1 } },
+  // Assassin
+  { id:"sharpEdge",  cls:"assassin", name:"Sharp Edge",  rarity:"common", max:3, desc:"Ambush deals +0.5x more damage", fx:{ sharp:1 } },
+  { id:"afterimage",  cls:"assassin", name:"Afterimage",  rarity:"rare",   max:1, desc:"Shadow Step leaves a decoy that enemies chase (2s)", fx:{ decoy:1 } },
+  { id:"executioner", cls:"assassin", name:"Executioner", rarity:"epic",   max:1, desc:"Each kill refunds 1.5s of Shadow Step cooldown", fx:{ exec:1 } },
+  { id:"twinStep",    cls:"assassin", name:"Twin Step",   rarity:"epic",   max:1, desc:"Shadow Step holds 2 charges", fx:{ charges:1 } },
+  // Gunner
+  { id:"bigMag",     cls:"gunner", name:"Big Mag",       rarity:"common", max:3, desc:"+2 rounds per magazine",            fx:{ mag:2 } },
+  { id:"blastShell", cls:"gunner", name:"Blast Shell",   rarity:"rare",   max:1, desc:"Recoil Jump: +1 dmg, wider cone",  fx:{ shell:1 } },
+  { id:"deadEye",    cls:"gunner", name:"Dead Eye",      rarity:"epic",   max:1, desc:"Last round of each mag: x4 dmg, pierces all", fx:{ deadEye:1 } },
+  { id:"twinBots",   cls:"gunner", name:"Twin Bots",     rarity:"epic",   max:1, desc:"A second Bomb Buddy",              fx:{ bots:1 } },
   { id:"frostBlink",cls:"mage",   name:"Frost Blink",   rarity:"epic",   max:1, desc:"Blink leaves a frost field (3s)",  fx:{ blinkField:3 } },
 ];
 
@@ -57,8 +72,9 @@ export const describe = (u, cls) => typeof u.desc === "string" ? u.desc : u.desc
 // owned = { id: stacks }. minRarity: "rare" on stage clear. Never offers maxed or duplicate cards.
 export function rollChoices(cls, owned, stage, minRarity = "common", n = 3, rnd = Math.random) {
   const order = ["common", "rare", "epic"], minI = order.indexOf(minRarity);
-  const pool = UPGRADES.filter(u => (!u.cls || u.cls === cls) && (owned[u.id] || 0) < u.max
-    && order.indexOf(u.rarity) >= minI && !(u.rarity === "epic" && stage < RARITY.epic.fromStage));
+  const open = u => (!u.cls || u.cls === cls) && (owned[u.id] || 0) < u.max && !(u.rarity === "epic" && stage < RARITY.epic.fromStage);
+  let pool = UPGRADES.filter(u => open(u) && order.indexOf(u.rarity) >= minI);
+  if (pool.length < n) pool = UPGRADES.filter(open);     // endless: Rare+ cards run out, so fall back to every rarity rather than an empty pick
   const out = [];
   while (out.length < n && pool.length) {
     let sum = 0; for (const u of pool) sum += RARITY[u.rarity].weight * (u.cls ? 1.3 : 1);   // class cards slightly favoured
@@ -92,6 +108,18 @@ export const UP_ICONS = {
   bigSplash: ["X...X...X",".X..X..X.","..XKKKX..","XXKYYYKXX","..KYwYK..","XXKYYYKXX","..XKKKX..",".X..X..X.","X...X...X"],
   deepFreeze:["....Z....",".Z..Z..Z.","..Z.Z.Z..","...ZwZ...","ZZZwwwZZZ","...ZwZ...","..Z.Z.Z..",".Z..Z..Z.","....Z...."],
   splitOrb:  [".KKK.....","KXYXK....","KXXXK....",".KKK.X...","....X.KKK","...X.KXYK","..KKKKXXK","..KXYK.K.","..KKK...."],
+  longEcho:     [".........","..T...T..",".TtT.TtT.","TtttTtttT",".TtT.TtT.","..T...T..",".........",".........","........."],
+  chronoShield: [".KKKKKKK.","KZZZZZZZK","KZZZKZZZK","KZZZKZZZK","KZZZKKKZK",".KZZZZZK.",".KZZZZZK.","..KZZZK..","...KKK..."],
+  replay:       ["..KKKKK..",".KT...TK.","KT..K..TK","KT.KTK.TK","KT..K..TK",".KT...TKK","..KKKKKKT","......KKK","........."],
+  twinBubbles:  [".KK..KK..","KZZK.KZZK","KZwK.KwZK","KZZK.KZZK",".KK..KK..",".........",".........",".........","........."],
+  sharpEdge:   ["......KWW",".....KWWK","....KWWK.","...KWWK..","KK.KWK...","KLKKK....",".KLK.....","..KBK....","...K....."],
+  afterimage:  ["..KKK....",".KwwwK.KK","KwKwKKZZK","KwwwKKZKK","KwwwK.KZK",".KKK..KZK","KwKwK.KKK","KKKKK....","........."],
+  executioner: ["..KKKKK..",".KWWWWWK.",".KWRWRWK.",".KWWKWWK.","..KWWWK..","..KwKwK..","...KKK...","..R...R..",".R.....R."],
+  twinStep:    ["KK..KK...",".KK..KK..","..KK..KK.","...KK..KK","..KK..KK.",".KK..KK..","KK..KK...",".........","........."],
+  bigMag:    [".K.K.....","KyKyK..G.","KyKyK.GGG","KyKyK..G.","KLKLK....","KLKLK....",".K.K.....",".........","........."],
+  blastShell:["...KKK...","..KrrrK..","..KrRrK..","..KrrrK..","..KyyyK..","..KLLLK..","...KKK...",".y.....y.","..y...y.."],
+  deadEye:   ["....K....","..KK.KK..",".K..K..K.",".K..K..K.","KKKKRKKKK",".K..K..K.",".K..K..K.","..KK.KK..","....K...."],
+  twinBots:  [".........",".y...y...",".K...K...","KrrK.KrrK","KrRK.KrRK","KrrK.KrrK",".KK...KK.",".........","........."],
   frostBlink:["..ZZZ....",".Z...Z...","Z..P..Z..","Z.PwP.Z..","Z..P..Z.Z",".Z...Z.ZZ","..ZZZ..Z.",".....Z.Z.","......Z.."],
 };
 
@@ -108,6 +136,8 @@ export function computeMods(owned, cls) {
     arc: 20 * n("wideArc"), reach: 3 * n("wideArc"), dashShield: n("guardDash") ? 1.5 : 0, spinEvery: n("whirlwind") ? 4 : 0, dashDamage: n("shockDash") ? 2 : 0,
     range: 1 + 0.15 * n("longbow"), projSpeed: 1 + 0.15 * n("longbow"), arrows: n("extraArrow"), bounce: n("ricochet"), rollTrap: n("trapRoll") ? 3 : 0,
     splash: 1 + 0.15 * n("bigSplash"), chillTime: n("deepFreeze") ? 2 : 1, chillMul: n("deepFreeze") ? 0.4 : 0.5, split: n("splitOrb") > 0, blinkField: n("frostBlink") ? 3 : 0,
+    echo: n("longEcho"), rewindShield: n("chronoShield") > 0, replay: n("replay") > 0, bubbles: 1 + n("twinBubbles"), sharp: n("sharpEdge"), decoy: n("afterimage") > 0, exec: n("executioner") > 0, charges: 1 + n("twinStep"),
+    mag: 2 * n("bigMag"), shell: n("blastShell"), deadEye: n("deadEye") > 0, bots: 1 + n("twinBots"),
   };
 }
 // attack interval with temporary rate (power-ups) and permanent rate (Haste), never below 50% of base

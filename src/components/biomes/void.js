@@ -8,9 +8,9 @@ export const VOID = {
   vision: { player: 52, playerGB: 44, eclipse: 36, eye: 30, companion: 14, bullet: 0 },
 };
 
-export function buildVoid(W, H, WALL, TILE = 12, doc = document) {
+export function buildVoid(W, H, WALL, TILE = 12, doc = document, room = 0) {
   const P = VOID.pal, cv = doc.createElement("canvas"); cv.width = W; cv.height = H;
-  const c = cv.getContext("2d"), r = rng(77), px = (x, y, col, w = 1, h = 1) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+  const c = cv.getContext("2d"), r = rng(77 + room * 13), px = (x, y, col, w = 1, h = 1) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
   // abyss background everywhere first
   px(0, 0, P.sky, W, H);
   for (let i = 0; i < W * H / 90; i++) px(r() * W | 0, r() * H | 0, r() < 0.2 ? P.star : P.starDim);

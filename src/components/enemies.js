@@ -6,8 +6,10 @@ import { SKELETON, BONE_PILE, DROWNED, CRYPT_EPAL } from "./biomes/crypt_enemies
 import { VOID_SHADE, VOID_EYE, DARK_BOLT, RIFT, VOID_EPAL, EYE_KEYS } from "./biomes/void_enemies.js";
 import { RAT, DUNGEON_EPAL } from "./biomes/dungeon_enemies.js";
 import { LAVA } from "./biomes/lava.js";
+import { CHR } from "./classes.js";
 import { W, H, WALL, clamp, burst, hurt, shootE, onIceAt, stageOf, msg, pc } from "./engine.js";
 import { sfx } from "./audio.js";
+import { LOOP, GATE } from "./stages.js";
 
 // xp: shards dropped · pts: score · sp: speed · summon: never counts toward stage progress
 export const ENEMIES = {
@@ -26,15 +28,15 @@ export const ENEMIES = {
 };
 
 export function spawnEnemy(g, type, x, y, o = {}) {
-  const d = ENEMIES[type], hpMul = o.summon || d.summon ? 1 : 1 + 0.2 * g.phase;
-  const e = { type, ...d, x, y, hp: Math.ceil(d.hp * hpMul), sp: d.sp * (1 + 0.05 * g.phase), hit: 0, slow: 0, slowMul: 0.5, vx: 0, vy: 0, t: Math.random() * 3, fireT: d.ranged ? 1 + Math.random() : 0, ...o };
+  const d = ENEMIES[type], hpMul = o.summon || d.summon ? 1 : (1 + 0.2 * g.phase) * (1 + LOOP.hp * g.loop);
+  const e = { type, ...d, x, y, hp: Math.ceil(d.hp * hpMul), sp: d.sp * (1 + 0.05 * g.phase) * Math.min(LOOP.speedCap, 1 + LOOP.speed * g.loop), hit: 0, slow: 0, slowMul: 0.5, vx: 0, vy: 0, t: Math.random() * 3, fireT: d.ranged ? 1 + Math.random() : 0, ...o };
   if (!e.pal) e.pal = stageOf(g).slimePal;
   g.en.push(e); return e;
 }
-function edgePoint(g, w, h) {
+function edgePoint(g, w, h, sides = [0, 1, 2]) {
   const [px, py] = pc(g); let x, y;
   for (let i = 0; i < 6; i++) {
-    const side = Math.random() * 3 | 0, r = Math.random();
+    const side = sides[Math.random() * sides.length | 0], r = Math.random();
     x = side === 0 ? -w - 2 : side === 1 ? W + 2 : 4 + r * (W - 16);
     y = side === 2 ? H + 2 : WALL + 2 + r * (H - WALL - 10);
     if (Math.hypot(x - px, y - py) > 40) break;
@@ -49,18 +51,45 @@ export function spawnMob(g, S) {
     const [px, py] = pc(g), pools = (g.biome.pools || []).flatMap(p => p.blobs).filter(b => Math.hypot(b.x - px, b.y - py) > 50);
     if (pools.length) { const b = pools[Math.random() * pools.length | 0]; spawnEnemy(g, type, b.x - d.w / 2, b.y - d.h + 2, { rise: 1 }); return; }
   }
-  const [x, y] = edgePoint(g, d.w, d.h);
-  spawnEnemy(g, type, x, y);
-  if (type === "bat") spawnEnemy(g, type, x + (x < 0 ? -8 : 8), y + 6);
+  if (g.en.filter(e => !e.summon).length + g.gates.length >= (W < 200 ? GATE.capGB : GATE.cap)) return;     // on-screen cap: the spawn is skipped, the timer keeps running
+  const [x, y] = edgePoint(g, d.w, d.h, g.sides);
+  g.gates.push({ type, x, y, t: GATE.delay });                                                           // telegraph first, enemy appears when the marker expires
+}
+// Spawn bookkeeping, once per frame: gates count down and release their enemy; the active spawn sides rotate.
+export function stepSpawns(g, dt) {
+  if (g.boss || g.door) g.gates = [];
+  for (const q of g.gates) q.t -= dt;
+  const due = g.gates.filter(q => q.t <= 0); g.gates = g.gates.filter(q => q.t > 0);
+  for (const q of due) { spawnEnemy(g, q.type, q.x, q.y); if (q.type === "bat") spawnEnemy(g, q.type, q.x + (q.x < 0 ? -8 : 8), q.y + 6); }
+  if ((g.sideT -= dt) <= 0) {
+    const n = g.phase >= 1 ? 2 : 1, pick = [0, 1, 2].filter(s => !g.sides.includes(s) || n === 2), out = [];
+    while (out.length < n) { const s = (pick.length ? pick : [0, 1, 2])[Math.random() * (pick.length || 3) | 0]; if (!out.includes(s)) out.push(s); pick.splice(pick.indexOf(s), 1); }
+    g.sides = out; g.sideT = GATE.sideTime;
+  }
+}
+// Markers sit at the screen edge where the enemy will walk in; the active spawn sides glow along the wall.
+export function drawGates(ctx, g, now) {
+  if (g.boss || g.door) return;
+  const pulse = 0.35 + 0.25 * Math.sin(now / 160); ctx.fillStyle = `rgba(255,74,106,${pulse})`;
+  for (const s of g.sides) { if (s === 0) ctx.fillRect(0, WALL, 1, H - WALL); else if (s === 1) ctx.fillRect(W - 1, WALL, 1, H - WALL); else ctx.fillRect(0, H - 1, W, 1); }
+  for (const q of g.gates) {
+    const x = Math.round(clamp(q.x, 4, W - 5)), y = Math.round(clamp(q.y, WALL + 4, H - 5)), on = q.t < 0.25 || Math.floor(now / 90) % 2;
+    if (!on) continue; ctx.fillStyle = q.t < 0.25 ? "#ffffff" : "#ff4a6a";
+    ctx.fillRect(x, y - 3, 1, 7); ctx.fillRect(x - 3, y, 7, 1); ctx.fillRect(x - 1, y - 1, 3, 3);
+  }
 }
 export function spawnAt(g, type, n, o = {}) { for (let i = 0; i < n; i++) { const [x, y] = edgePoint(g, ENEMIES[type].w, ENEMIES[type].h); spawnEnemy(g, type, x, y, { summon: true, xp: 0, ...o }); } }
 
 export function stepEnemies(g, dt, cx, cy) {
   for (const e of g.en) {
-    e.t += dt; e.hit -= dt; e.slow -= dt;
+    e.t += dt; e.hit -= dt; e.slow -= dt; if (e.mark > 0) e.mark -= dt; if (e.stasis > 0) e.stasis -= dt;
     if (e.rise > 0) { e.rise -= dt; continue; }
     if (e.life !== undefined && (e.life -= dt) <= 0) { e.hp = 0; burst(g, e.x + 2, e.y + 2, 4, "#ff8a2a"); continue; }
-    const ex = e.x + e.w / 2, ey = e.y + e.h / 2, ax = cx - ex, ay = cy - ey, d = Math.hypot(ax, ay) || 1, sl = e.slow > 0 ? e.slowMul : 1, sp = e.sp * sl;
+    if (e.stun > 0) { e.stun -= dt; continue; }                                            // pinned by the Shade Cat / an Ambush
+    const ex = e.x + e.w / 2, ey = e.y + e.h / 2;
+    let tx = cx, ty = cy, decoyed = false;                                                  // Afterimage decoy pulls nearby chasers
+    if (g.decoy && !e.fixed && !e.ranged && !e.turret && Math.hypot(g.decoy.x - ex, g.decoy.y - ey) < 90) { tx = g.decoy.x; ty = g.decoy.y; decoyed = true; }
+    const ax = tx - ex, ay = ty - ey, d = Math.hypot(ax, ay) || 1, sl = e.slow > 0 ? e.slowMul : 1, sp = e.sp * sl * g.ts * (e.stasis > 0 ? CHR.bubbleSlow : 1);
     if (e.harmless) {                                         // bone pile: reassembles unless walked over / hit
       e.re = (e.re ?? 3) - dt;
       if (d < 8) { e.hp = 0; burst(g, ex, ey, 6, "#e8e4d8"); continue; }
@@ -89,7 +118,7 @@ export function stepEnemies(g, dt, cx, cy) {
     else { e.vx = mx * s; e.vy = my * s; }
     e.x += e.vx * dt; e.y += e.vy * dt;
     if (e.x > -20 && e.x < W + 10 && e.y > WALL - 6 && e.y < H + 10) { e.x = clamp(e.x, -e.w, W); e.y = clamp(e.y, WALL - 4, H); }
-    if (!e.fixed && d < e.w / 2 + 4 && hurt(g)) { e.x -= ax / d * 14; e.y -= ay / d * 14; }
+    if (!e.fixed && !decoyed && d < e.w / 2 + 4 && hurt(g)) { e.x -= ax / d * 14; e.y -= ay / d * 14; }
   }
 }
 function spawnEnemyReplace(g, type, x, y, o) { g.en.push({ type, ...ENEMIES[type], x, y, hit: 0, slow: 0, slowMul: 0.5, vx: 0, vy: 0, t: 0, pal: ENEMIES[type].pal, ...o, onDeath: pileOnDeath }); }
