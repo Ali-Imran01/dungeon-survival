@@ -1,9 +1,10 @@
 // Stage 5 — The Void enemies: sprites + tuning. Eyes (e/E/w) are redrawn above the darkness.
+import { mirror8 as mirror } from "../sprites.js";
+
 export const VOID_EPAL = {
   K:"#120e1a", v:"#1a1030", V:"#2e1d52", p:"#5b3f8c", P:"#8a6fd1", e:"#ff4fd8", E:"#ffffff", w:"#e8e4f5",
   h:"#2b2140", H:"#4a3570", L:"#d4a82a", r:"#ff4a6a", X:"#5ef2ff",
 };
-const mirror = half => half.map(r => r + [...r].reverse().join(""));
 export const EYE_KEYS = ["e", "E", "r", "X"];    // pixels with these keys are drawn again above the darkness
 
 // Regular: Void Shade — hp 2, speed 38; every 2.5s blinks 20px toward the player (0.3s shimmer first). Only its eyes show in the dark.
@@ -19,7 +20,17 @@ export const DARK_BOLT = [".K.","KeK",".K."];
 // Miniboss 1: Mirror Self — hp 55. A shadow copy of YOUR class (drawHero with SHADOW palette) using your attack + ability:
 //  Warden copy: dash-slash; Ranger copy: arrow volleys + roll; Mage copy: slow homing orbs + blink.
 //  After each ability it recovers for 1s and takes DOUBLE damage. Fight yourself.
-export const SHADOW = new Proxy({}, { get: (_, k) => k === "K" ? "#120e1a" : (k === "E" || k === "y" || k === "X") ? "#ff4fd8" : ["h","C","B","d","H","b"].includes(k) ? "#2e1d52" : "#5b3f8c" });
+// palette for the Mirror Self: a dark purple silhouette copy of the player's class, with glowing pink eyes/gems
+const SHADOW_DARK = ["h", "C", "B", "d", "H", "b"];
+const SHADOW_GLOW = ["E", "y", "X"];
+export const SHADOW = new Proxy({}, {
+  get: (_, k) => {
+    if (k === "K") return "#120e1a";
+    if (SHADOW_GLOW.includes(k)) return "#ff4fd8";
+    if (SHADOW_DARK.includes(k)) return "#2e1d52";
+    return "#5b3f8c";
+  },
+});
 
 // Miniboss 2: Rift Weaver — hp 52, speed 26, cycle [openRifts, web, openRifts, lunge]
 //  openRifts: opens up to 3 Rifts (hp 4 each, fire a bolt at the player every 2s, light r 18)

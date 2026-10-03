@@ -1,10 +1,11 @@
 // Stage 1 — Dungeon (tutorial stage). Slime King stays as miniboss 1; Ember/Frost/Void Slime retire (their
 // elements now have their own stages). Everything here is slow and heavily telegraphed: it teaches the patterns.
+import { mirror8 as mirror } from "../sprites.js";
+
 export const DUNGEON_EPAL = {
   K:"#120e1a", r:"#7a6a62", R:"#5a4c46", e:"#ff4a6a", p:"#ff9aa5", L:"#d4a82a",
   j:"#4a4450", J:"#7a7486", b:"#5a3a22", S:"#c99a7a", y:"#ffd166",
 };
-const mirror = half => half.map(r => r + [...r].reverse().join(""));
 
 // Add: Rat — hp 1, speed 50 (fast, fragile). Only spawned by the Rat King / Jailer.
 export const RAT = ["......KK.","..KKKKrrK","pKrrrrreK",".KRrrrrrK","..KK.KK.."];

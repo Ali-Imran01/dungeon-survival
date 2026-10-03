@@ -20,7 +20,7 @@ to the source and check the script still agrees with what's actually there.
 | 5 | Companion state machines | `engine.js` `stepCompanion` |
 | 6 | The engine.js ↔ classes/enemies/bosses circular import | `engine.js` header |
 | 7 | The boss attack DSL | `bosses.js` `ATK`, combinators |
-| 8 | Assassin Ambush / Chronomancer Rewind | `classes.js` |
+| 8 | Assassin Ambush / Necromancer Raise Dead | `classes.js` |
 
 ---
 
@@ -114,7 +114,7 @@ each branch.
 
 **Say it out loud:** "Take the hawk as the example — it perches near me, and every couple seconds checks for a
 target within 50px. If it finds one it dives, hits, and — if bond level gives it extra dives (`c.extra`) —
-chains to another nearby target before returning to perch. The other five companions (wisp, cat, sandling, bomb
+chains to another nearby target before returning to perch. The other five companions (wisp, cat, bone imp, bomb
 buddy, familiar) follow the same perch/act/return shape with different triggers and effects. It's six small
 state machines living in one function rather than a shared FSM."
 
@@ -163,26 +163,24 @@ this shape; a library would add indirection without a real payoff at this scale.
 
 ---
 
-## 8. Assassin Ambush and Chronomancer Rewind (classes.js)
+## 8. Assassin Ambush and Necromancer Raise Dead (classes.js)
 
 **Assassin — Shadow Step / Ambush:** teleports to `stepLanding()` (just behind the nearest target) or a blind
 40px blink if nothing's in range. Landing near a target arms a 2-second Ambush window — the next stab is ×3
 damage. Charges work like a rechargeable magazine, not independent per-charge timers: the recharge timer
 (`p.chT`, ticked in `tick()`) only starts once you drop *below* max charges, so charges refill one at a time.
 
-**Chronomancer — Rewind:** jumps to the position recorded ~2 seconds ago, read from a position-history ring
-buffer (`g.hist`, pushed every frame in `step()`). If that historical snapshot shows *more* armour plates than
-you currently have, the difference is restored too — Rewind can undo a lost plate, not just movement. `g.hist`
-is reset to a single fresh entry right after rewinding, so you can't chain-rewind through the same window twice.
+**Necromancer — Raise Dead:** `ability()` pushes skeletons onto `g.minions`; `stepMinions()` (engine.js) moves each
+toward the nearest target and deals contact damage, with a per-target cooldown stored in a `Map` on the minion so
+one skeleton can't hit the same enemy every frame. Skeletons expire after 6 seconds and fade out in the last 0.6.
 
 **Say it out loud (Assassin):** "Shadow Step blinks me behind the nearest enemy and arms a 2-second Ambush
 window where my next stab does triple damage. Charges recharge like a magazine — one at a time — the timer only
 starts once I've used a charge and I'm below max, not per-charge independently."
 
-**Say it out loud (Chronomancer):** "Rewind replays my position from about two seconds ago using a small ring
-buffer I push to every frame. The neat part: if I lost an armour plate in that window, Rewind restores it too,
-not just my position — so it can undo a plate break, which reads as a genuine 'time' mechanic rather than just a
-blink with a longer cooldown."
+**Say it out loud (Necromancer):** "Raise Dead spawns a few skeleton minions into an array. Each frame a step
+function walks them toward the nearest enemy and deals contact damage. A per-target cooldown map keeps one skeleton
+from hitting the same enemy every frame, and they time out after six seconds."
 
 **Likely follow-up (both):** "What's the trickiest bug you hit building this?" — *Fill this in with a real
 anecdote before the interview — a genuine debugging story lands better than anything written here.*

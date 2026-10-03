@@ -3,7 +3,7 @@
 Measured from the sprite arrays in `src/components/`. Logical screen is 240×135 (desktop) / 160×144 (Game Boy).
 
 ## Heroes
-All six share one footprint: **body 16×13 + legs 16×3 = 16×16** (legs are a separate 3-row strip on Warden, Assassin, Gunner, Chronomancer; Ranger and Mage have none). Hero preview canvas is 22×20 (room for weapon/cape).
+All six share one footprint: **body 16×13 + legs 16×3 = 16×16** (legs are a separate 3-row strip on Warden, Assassin, Gunner, Necromancer; Ranger and Mage have none). Hero preview canvas is 22×20 (room for weapon/cape).
 
 | Hero | Body | Legs | Idle / run / attack frames |
 |---|---|---|---|
@@ -12,7 +12,7 @@ All six share one footprint: **body 16×13 + legs 16×3 = 16×16** (legs are a s
 | Mage | 16×13 | – | 14 / 14 / 2 |
 | Assassin | 16×13 | 16×3 | 6 / 6 / 3 |
 | Gunner | 16×13 | 16×3 | 9 / 7 / 3 |
-| Chronomancer | 16×13 | 16×3 | 20 / 20 / 3 |
+| Necromancer | 16×13 | 16×3 | 20 / 20 / 3 |
 
 ## Regular enemies (sprite = hitbox)
 | Enemy | Stage | Size |

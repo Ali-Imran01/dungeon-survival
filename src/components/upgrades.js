@@ -32,7 +32,15 @@ export const UPGRADES = [
   { id:"guardian",  name:"Guardian Spark", rarity:"rare",   max:2, desc:"Gain a shield every 30s (20s at II)", fx:{ shieldEvery:[30, 20] } },
   { id:"secondWind",name:"Second Wind",    rarity:"rare",   max:1, desc:"Once per stage, survive a lethal hit", fx:{ cheatDeath:1 } },
   { id:"harvest",   name:"Soul Harvest",   rarity:"rare",   max:2, desc:"Heal 1 heart every 40 kills (30 at II)", fx:{ healEvery:[40, 30] } },
-  { id:"bond",      name:"Companion Bond", rarity:"rare",   max:2, desc:{ warden:"Wisp fires 2 shots", ranger:"Hawk swoops twice", mage:"Familiar +1 charge", assassin:"Cat marks 2 enemies per pounce", gunner:"Bomb Buddy explodes for +1 dmg", chronomancer:"Stasis bubbles last 1.5s longer" }, fx:{ companion:1 } },
+  { id:"bond",      name:"Companion Bond", rarity:"rare",   max:2, fx:{ companion:1 },
+    desc:{
+      warden: "Wisp fires 2 shots",
+      ranger: "Hawk swoops twice",
+      mage: "Familiar +1 charge",
+      assassin: "Cat marks 2 enemies per pounce",
+      gunner: "Bomb Buddy explodes for +1 dmg",
+      necromancer: "Grave fog lasts 1.5s longer",
+    } },
   // Warden
   { id:"wideArc",   cls:"warden", name:"Wide Arc",      rarity:"common", max:3, desc:"+20° swing arc, +3 reach",          fx:{ arc:20, reach:3 } },
   { id:"guardDash", cls:"warden", name:"Guarded Dash",  rarity:"rare",   max:1, desc:"Dashing gives a shield for 1.5s",  fx:{ dashShield:1.5 } },
@@ -47,11 +55,11 @@ export const UPGRADES = [
   { id:"bigSplash", cls:"mage",   name:"Big Splash",    rarity:"common", max:3, desc:"+15% splash radius",               fx:{ splash:0.15 } },
   { id:"deepFreeze",cls:"mage",   name:"Deep Freeze",   rarity:"rare",   max:1, desc:"Chill lasts 2s and slows more",    fx:{ chillTime:2, chillMul:0.4 } },
   { id:"splitOrb",  cls:"mage",   name:"Split Orb",     rarity:"epic",   max:1, desc:"Orbs split into 2 on hit",         fx:{ split:2 } },
-  // Chronomancer
-  { id:"longEcho",    cls:"chronomancer", name:"Long Echo",    rarity:"common", max:3, desc:"Echoes deal +25% damage",                    fx:{ echo:1 } },
-  { id:"chronoShield",cls:"chronomancer", name:"Chrono Shield",rarity:"rare",   max:1, desc:"Rewind also grants 1.5s invulnerability",     fx:{ rewindShield:1 } },
-  { id:"replay",      cls:"chronomancer", name:"Replay",       rarity:"epic",   max:1, desc:"Enemies you hit take 30% of it again 2s later", fx:{ replay:1 } },
-  { id:"twinBubbles", cls:"chronomancer", name:"Twin Bubbles", rarity:"epic",   max:1, desc:"The Sandling drops two stasis bubbles",       fx:{ bubbles:1 } },
+  // Necromancer
+  { id:"boneLegion", cls:"necromancer", name:"Bone Legion", rarity:"common", max:2, desc:"Raise Dead calls +1 skeleton",           fx:{ legion:1 } },
+  { id:"soulWard",   cls:"necromancer", name:"Soul Ward",   rarity:"rare",   max:1, desc:"Raise Dead also grants 1.5s invulnerability", fx:{ soulWard:1 } },
+  { id:"soulRot",    cls:"necromancer", name:"Soul Rot",    rarity:"epic",   max:1, desc:"Enemies you hit take 30% of it again 2s later", fx:{ replay:1 } },
+  { id:"twinImps",   cls:"necromancer", name:"Twin Imps",   rarity:"epic",   max:1, desc:"The Bone Imp drops two fog zones",        fx:{ imps:1 } },
   // Assassin
   { id:"sharpEdge",  cls:"assassin", name:"Sharp Edge",  rarity:"common", max:3, desc:"Ambush deals +0.5x more damage", fx:{ sharp:1 } },
   { id:"afterimage",  cls:"assassin", name:"Afterimage",  rarity:"rare",   max:1, desc:"Shadow Step leaves a decoy that enemies chase (2s)", fx:{ decoy:1 } },
@@ -66,20 +74,39 @@ export const UPGRADES = [
 ];
 
 // desc can be a string or { [cls]: string }
-export const describe = (u, cls) => typeof u.desc === "string" ? u.desc : u.desc[cls];
+export function describe(u, cls) {
+  return typeof u.desc === "string" ? u.desc : u.desc[cls];
+}
 
 // ---------- Rolling 3 choices ----------
 // owned = { id: stacks }. minRarity: "rare" on stage clear. Never offers maxed or duplicate cards.
 export function rollChoices(cls, owned, stage, minRarity = "common", n = 3, rnd = Math.random) {
-  const order = ["common", "rare", "epic"], minI = order.indexOf(minRarity);
-  const open = u => (!u.cls || u.cls === cls) && (owned[u.id] || 0) < u.max && !(u.rarity === "epic" && stage < RARITY.epic.fromStage);
-  let pool = UPGRADES.filter(u => open(u) && order.indexOf(u.rarity) >= minI);
-  if (pool.length < n) pool = UPGRADES.filter(open);     // endless: Rare+ cards run out, so fall back to every rarity rather than an empty pick
+  const order = ["common", "rare", "epic"];
+  const minIndex = order.indexOf(minRarity);
+
+  const open = u =>
+    (!u.cls || u.cls === cls) &&
+    (owned[u.id] || 0) < u.max &&
+    !(u.rarity === "epic" && stage < RARITY.epic.fromStage);
+
+  let pool = UPGRADES.filter(u => open(u) && order.indexOf(u.rarity) >= minIndex);
+  // endless: Rare+ cards run out, so fall back to every rarity rather than an empty pick
+  if (pool.length < n) pool = UPGRADES.filter(open);
+
+  // class cards are slightly favoured
+  const weightOf = u => RARITY[u.rarity].weight * (u.cls ? 1.3 : 1);
+
   const out = [];
   while (out.length < n && pool.length) {
-    let sum = 0; for (const u of pool) sum += RARITY[u.rarity].weight * (u.cls ? 1.3 : 1);   // class cards slightly favoured
-    let r = rnd() * sum, i = 0;
-    for (; i < pool.length; i++) if ((r -= RARITY[pool[i].rarity].weight * (pool[i].cls ? 1.3 : 1)) < 0) break;
+    let total = 0;
+    for (const u of pool) total += weightOf(u);
+
+    let roll = rnd() * total;
+    let i = 0;
+    for (; i < pool.length; i++) {
+      roll -= weightOf(pool[i]);
+      if (roll < 0) break;
+    }
     out.push(pool.splice(Math.min(i, pool.length - 1), 1)[0]);
   }
   return out;
@@ -108,10 +135,10 @@ export const UP_ICONS = {
   bigSplash: ["X...X...X",".X..X..X.","..XKKKX..","XXKYYYKXX","..KYwYK..","XXKYYYKXX","..XKKKX..",".X..X..X.","X...X...X"],
   deepFreeze:["....Z....",".Z..Z..Z.","..Z.Z.Z..","...ZwZ...","ZZZwwwZZZ","...ZwZ...","..Z.Z.Z..",".Z..Z..Z.","....Z...."],
   splitOrb:  [".KKK.....","KXYXK....","KXXXK....",".KKK.X...","....X.KKK","...X.KXYK","..KKKKXXK","..KXYK.K.","..KKK...."],
-  longEcho:     [".........","..T...T..",".TtT.TtT.","TtttTtttT",".TtT.TtT.","..T...T..",".........",".........","........."],
-  chronoShield: [".KKKKKKK.","KZZZZZZZK","KZZZKZZZK","KZZZKZZZK","KZZZKKKZK",".KZZZZZK.",".KZZZZZK.","..KZZZK..","...KKK..."],
-  replay:       ["..KKKKK..",".KT...TK.","KT..K..TK","KT.KTK.TK","KT..K..TK",".KT...TKK","..KKKKKKT","......KKK","........."],
-  twinBubbles:  [".KK..KK..","KZZK.KZZK","KZwK.KwZK","KZZK.KZZK",".KK..KK..",".........",".........",".........","........."],
+  boneLegion:    [".........","..T...T..",".TtT.TtT.","TtttTtttT",".TtT.TtT.","..T...T..",".........",".........","........."],
+  soulWard:     [".KKKKKKK.","KZZZZZZZK","KZZZKZZZK","KZZZKZZZK","KZZZKKKZK",".KZZZZZK.",".KZZZZZK.","..KZZZK..","...KKK..."],
+  soulRot:      ["..KKKKK..",".KT...TK.","KT..K..TK","KT.KTK.TK","KT..K..TK",".KT...TKK","..KKKKKKT","......KKK","........."],
+  twinImps:     [".KK..KK..","KZZK.KZZK","KZwK.KwZK","KZZK.KZZK",".KK..KK..",".........",".........",".........","........."],
   sharpEdge:   ["......KWW",".....KWWK","....KWWK.","...KWWK..","KK.KWK...","KLKKK....",".KLK.....","..KBK....","...K....."],
   afterimage:  ["..KKK....",".KwwwK.KK","KwKwKKZZK","KwwwKKZKK","KwwwK.KZK",".KKK..KZK","KwKwK.KKK","KKKKK....","........."],
   executioner: ["..KKKKK..",".KWWWWWK.",".KWRWRWK.",".KWWKWWK.","..KWWWK..","..KwKwK..","...KKK...","..R...R..",".R.....R."],
@@ -125,20 +152,64 @@ export const UP_ICONS = {
 
 // ---------- Effective modifiers from owned upgrades (engine + classes read g.mods) ----------
 export function computeMods(owned, cls) {
-  const n = id => owned[id] || 0, pick = (id, arr) => n(id) ? arr[Math.min(n(id), arr.length) - 1] : 0;
+  const n = id => owned[id] || 0;
+  // stack-dependent value, e.g. pick("guardian", [30, 20]) -> 30 at I, 20 at II, 0 if not owned
+  const pick = (id, values) => (n(id) ? values[Math.min(n(id), values.length) - 1] : 0);
+
   return {
+    // shared
     dmg: Math.min(CAPS.damage, 1 + 0.15 * n("sharpen")),
-    atk: 1 + 0.12 * n("haste"),                              // attack-rate multiplier (intervals are divided by this; see atkInterval)
+    atk: 1 + 0.12 * n("haste"),                  // attack-rate multiplier (intervals are divided by this; see atkInterval)
     move: Math.min(CAPS.moveSpeed, 1 + 0.10 * n("swift")),
     cd: Math.max(CAPS.cooldown, 1 - 0.15 * n("recovery")),
     magnet: 1 + 0.5 * n("magnet"),
-    shieldEvery: pick("guardian", [30, 20]), secondWind: n("secondWind") > 0, healEvery: pick("harvest", [40, 30]), companion: n("bond"),
-    arc: 20 * n("wideArc"), reach: 3 * n("wideArc"), dashShield: n("guardDash") ? 1.5 : 0, spinEvery: n("whirlwind") ? 4 : 0, dashDamage: n("shockDash") ? 2 : 0,
-    range: 1 + 0.15 * n("longbow"), projSpeed: 1 + 0.15 * n("longbow"), arrows: n("extraArrow"), bounce: n("ricochet"), rollTrap: n("trapRoll") ? 3 : 0,
-    splash: 1 + 0.15 * n("bigSplash"), chillTime: n("deepFreeze") ? 2 : 1, chillMul: n("deepFreeze") ? 0.4 : 0.5, split: n("splitOrb") > 0, blinkField: n("frostBlink") ? 3 : 0,
-    echo: n("longEcho"), rewindShield: n("chronoShield") > 0, replay: n("replay") > 0, bubbles: 1 + n("twinBubbles"), sharp: n("sharpEdge"), decoy: n("afterimage") > 0, exec: n("executioner") > 0, charges: 1 + n("twinStep"),
-    mag: 2 * n("bigMag"), shell: n("blastShell"), deadEye: n("deadEye") > 0, bots: 1 + n("twinBots"),
+    shieldEvery: pick("guardian", [30, 20]),
+    secondWind: n("secondWind") > 0,
+    healEvery: pick("harvest", [40, 30]),
+    companion: n("bond"),
+
+    // warden
+    arc: 20 * n("wideArc"),
+    reach: 3 * n("wideArc"),
+    dashShield: n("guardDash") ? 1.5 : 0,
+    spinEvery: n("whirlwind") ? 4 : 0,
+    dashDamage: n("shockDash") ? 2 : 0,
+
+    // ranger
+    range: 1 + 0.15 * n("longbow"),
+    projSpeed: 1 + 0.15 * n("longbow"),
+    arrows: n("extraArrow"),
+    bounce: n("ricochet"),
+    rollTrap: n("trapRoll") ? 3 : 0,
+
+    // mage
+    splash: 1 + 0.15 * n("bigSplash"),
+    chillTime: n("deepFreeze") ? 2 : 1,
+    chillMul: n("deepFreeze") ? 0.4 : 0.5,
+    split: n("splitOrb") > 0,
+    blinkField: n("frostBlink") ? 3 : 0,
+
+    // necromancer
+    legion: n("boneLegion"),
+    soulWard: n("soulWard") > 0,
+    replay: n("soulRot") > 0,
+    imps: 1 + n("twinImps"),
+
+    // assassin
+    sharp: n("sharpEdge"),
+    decoy: n("afterimage") > 0,
+    exec: n("executioner") > 0,
+    charges: 1 + n("twinStep"),
+
+    // gunner
+    mag: 2 * n("bigMag"),
+    shell: n("blastShell"),
+    deadEye: n("deadEye") > 0,
+    bots: 1 + n("twinBots"),
   };
 }
+
 // attack interval with temporary rate (power-ups) and permanent rate (Haste), never below 50% of base
-export const atkInterval = (base, tempRate, mods) => Math.max(base * CAPS.attackInterval, base / (tempRate * mods.atk));
+export function atkInterval(base, tempRate, mods) {
+  return Math.max(base * CAPS.attackInterval, base / (tempRate * mods.atk));
+}

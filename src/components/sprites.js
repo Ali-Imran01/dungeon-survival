@@ -1,20 +1,69 @@
 // Pixel data, palettes and sprite drawing
-export const PAL = { K:"#120e1a",S:"#f2c9a0",B:"#3a2a1e",L:"#d4a82a",W:"#cfd6e6",h:"#5b3f8c",H:"#3b2a5c",C:"#2e2447",c:"#463a6b",E:"#5ef2ff",o:"#2bb6d9",y:"#5ef2ff",w:"#e8ffff",g:"#6fcf6a",G:"#c9f59a",X:"#5ef2ff",x:"#2bb6d9",Y:"#e8ffff",R:"#e0414f",r:"#ff9aa5",b:"#5b7fd0",Z:"#b9d0ff",T:"#f5c542",t:"#fff1a8",D:"#a8741a",d:"#7a5320" };
+// default palette: one letter per colour, used by every sprite (heroes override some letters in their own `pal`)
+export const PAL = {
+  K: "#120e1a", S: "#f2c9a0", B: "#3a2a1e", L: "#d4a82a", W: "#cfd6e6",
+  h: "#5b3f8c", H: "#3b2a5c", C: "#2e2447", c: "#463a6b",
+  E: "#5ef2ff", o: "#2bb6d9", y: "#5ef2ff", w: "#e8ffff",
+  g: "#6fcf6a", G: "#c9f59a", X: "#5ef2ff", x: "#2bb6d9", Y: "#e8ffff",
+  R: "#e0414f", r: "#ff9aa5", b: "#5b7fd0", Z: "#b9d0ff",
+  T: "#f5c542", t: "#fff1a8", D: "#a8741a", d: "#7a5320",
+};
+
+// palettes that answer every letter with one colour (white hit flash, greyed-out locked class)
 export const WHITE = new Proxy({}, { get: () => "#ffffff" });
 export const DIM = new Proxy({}, { get: () => "#3a3448" });
-export const HIT = { K:"#fff", g:"#fff", G:"#fff" };
+export const HIT = { K: "#fff", g: "#fff", G: "#fff" };
 
-export const LEGS = { i:["...KKBKKKBKK....","....KBK.KBK.....","....KKK.KKK....."], r1:["...KKKKKKKKK....","..KBBK...KBK....","..KKK....KKK...."], r2:["...KKKBBKKKK....",".....KBBK.......",".....KKKK......."], r3:["...KKKKKKKKK....","....KBK...KBBK..","....KKK....KKK.."] };
+// default legs: standing (i) and three run frames
+export const LEGS = {
+  i:  ["...KKBKKKBKK....", "....KBK.KBK.....", "....KKK.KKK....."],
+  r1: ["...KKKKKKKKK....", "..KBBK...KBK....", "..KKK....KKK...."],
+  r2: ["...KKKBBKKKK....", ".....KBBK.......", ".....KKKK......."],
+  r3: ["...KKKKKKKKK....", "....KBK...KBBK..", "....KKK....KKK.."],
+};
 
-const DAG = [[12,9,"L"],[13,8,"W"],[14,7,"W"],[15,6,"W"]], RDAG = [[12,10,"L"],[13,11,"W"],[14,12,"W"]];
+// weapon overlays are lists of [x, y, paletteLetter] pixels drawn on top of the body
 const BOW = [[12,6,"d"],[13,7,"d"],[13,8,"d"],[13,9,"d"],[13,10,"d"],[12,11,"d"],[12,7,"W"],[12,8,"W"],[12,10,"W"],[12,9,"S"]];
 const STAFF = [[13,1,"X"],[12,2,"X"],[13,2,"Y"],[14,2,"X"],[13,3,"X"],[13,4,"d"],[13,5,"d"],[13,6,"d"],[13,7,"d"],[13,8,"d"],[13,9,"S"],[13,10,"d"],[13,11,"d"],[13,12,"d"]];
 
-const stamp = (rows, art, x0, y0) => { const out = rows.map(r => r.split("")); art.forEach((r, j) => [...r].forEach((c, i) => { if (c !== ".") out[y0 + j][x0 + i] = c; })); return out.map(r => r.join("")); };
+// paste a small piece of art onto a copy of `rows` at (x0, y0); "." pixels are transparent
+function stamp(rows, art, x0, y0) {
+  const out = rows.map(r => r.split(""));
+  art.forEach((row, j) => {
+    [...row].forEach((c, i) => {
+      if (c !== ".") out[y0 + j][x0 + i] = c;
+    });
+  });
+  return out.map(r => r.join(""));
+}
+
 // light from the upper left: darken the right half (steel W→J→j→q, purple h→H, gold L→l)
 const SHADE = { W: "J", J: "j", j: "q", h: "H", L: "l" };
 const shadeRight = rows => rows.map(r => [...r].map((c, i) => (i >= 8 && SHADE[c]) || c).join(""));
-const mirror8 = half => half.map(r => r + [...r].reverse().join(""));
+
+// sprites are drawn as the left 8 columns and mirrored to make the full 16
+export const mirror8 = half => half.map(r => r + [...r].reverse().join(""));
+
+// legs shared by the assassin and the gunner
+const CLOAK_LEGS = {
+  i: mirror8(["....KCCK", "....KCK.", "....KKK."]),
+  r1: ["...KCCKKKKK.....", "..KCCK...KCCK...", "..KKK....KKKK..."],
+  r2: ["....KCCKKCCK....", ".....KCKKCK.....", ".....KKKKKK....."],
+  r3: [".....KKKKKCCK...", "...KCCK..KCCK...", "...KKKK...KKK..."],
+};
+
+// the necromancer's skull staff, held the same way in every pose
+const SKULL_STAFF = [
+  [13,1,"w"],[14,1,"w"],[15,1,"w"],[13,2,"y"],[14,2,"w"],[15,2,"y"],[14,3,"w"],
+  [14,4,"B"],[14,5,"B"],[14,6,"B"],[14,7,"B"],[14,8,"B"],[14,9,"B"],[14,10,"B"],[14,11,"B"],[14,12,"B"],
+];
+
+// the gunner's hand cannon at rest, and the same pose with a muzzle flash
+const GUN_REST = [[12,10,"B"],[13,10,"B"],[13,11,"B"],[14,9,"j"],[14,10,"j"],[15,9,"W"],[15,10,"j"],[16,9,"W"],[17,9,"W"]];
+const GUN_FLASH = [...GUN_REST, [18,9,"Y"],[19,9,"y"],[18,8,"y"],[18,10,"y"],[20,9,"y"]];
+
+// the warden's great sword held out sideways while running (also the last frame of his swing)
+const SWORD_RUN = [[16,11,"B"],[16,10,"B"],[15,10,"L"],[17,10,"l"],[17,12,"W"],[18,13,"W"],[18,12,"J"],[19,14,"W"],[19,13,"J"],[20,15,"J"]];
 export const HERO = {
   warden: {
     // Knight in shining armour: polished steel (light from the upper left, right half shaded), great-helm with nose guard and
@@ -29,12 +78,12 @@ export const HERO = {
     pal: { J:"#c8d3ea", j:"#7d8bab", q:"#4a5578", W:"#ffffff", h:"#7a52c0", H:"#4b3580", L:"#e0b93a", l:"#a8841e", E:"#5ef2ff", K:"#120e1a" },
     // rest pose: great sword held point-up beside the shoulder (2 px wide, 8 px long)
     idle: [[16,12,"L"],[16,11,"B"],[16,10,"B"],[15,9,"L"],[16,9,"L"],[17,9,"l"],[16,8,"W"],[17,8,"J"],[16,7,"W"],[17,7,"J"],[16,6,"W"],[17,6,"J"],[16,5,"W"],[17,5,"J"],[16,4,"W"],[17,4,"J"],[16,3,"W"],[17,3,"J"],[16,2,"J"]],
-    run:  [[16,11,"B"],[16,10,"B"],[15,10,"L"],[17,10,"l"],[17,12,"W"],[18,13,"W"],[18,12,"J"],[19,14,"W"],[19,13,"J"],[20,15,"J"]],
+    run:  SWORD_RUN,
     // static fallbacks (class-select preview, Mirror Self). In the game the engine draws a rotating blade + slash arc instead.
     atk: [
       [[16,10,"B"],[15,9,"L"],[16,9,"L"],[17,9,"l"],[16,8,"W"],[17,8,"J"],[16,7,"W"],[17,7,"J"],[16,6,"W"],[17,6,"J"],[16,5,"W"],[17,5,"J"],[16,4,"W"],[17,4,"J"],[16,3,"J"]],
       [[15,10,"B"],[16,8,"L"],[16,9,"L"],[16,10,"L"],[16,11,"l"],[17,9,"W"],[18,9,"W"],[19,9,"W"],[20,9,"W"],[21,9,"W"],[17,10,"J"],[18,10,"J"],[19,10,"J"],[20,10,"J"],[21,10,"J"],[22,9,"J"],[19,5,"x"],[20,6,"X"],[21,7,"X"],[22,8,"Y"],[22,11,"X"],[21,12,"X"],[20,13,"x"]],
-      [[16,11,"B"],[16,10,"B"],[15,10,"L"],[17,10,"l"],[17,12,"W"],[18,13,"W"],[18,12,"J"],[19,14,"W"],[19,13,"J"],[20,15,"J"]]],
+      SWORD_RUN],
     phase: a => a > 0.16 ? 0 : a > 0.06 ? 1 : 2, lunge: 1,
     hand: [13.5, 9.5],
     glint: [[6, 2], [2, 9], [6, 8], [16, 4]],         // sparkle spots (sprite coords), one at a time
@@ -60,7 +109,7 @@ export const HERO = {
   assassin: {
     body: stamp(mirror8([".......K","......KH",".....KHh","....KHhh","....KhKK","....KhEK","....KhRr",".....KrR","..KKKhcc",".KcKKccC",".KcKKcCB","..KKKcCC","...KCCcC"]),
                 ["r","R","r"], 11, 7),                                    // scarf tail
-    legs: { i: mirror8(["....KCCK","....KCK.","....KKK."]), r1: ["...KCCKKKKK.....","..KCCK...KCCK...","..KKK....KKKK..."], r2: ["....KCCKKCCK....",".....KCKKCK.....",".....KKKKKK....."], r3: [".....KKKKKCCK...","...KCCK..KCCK...","...KKKK...KKK..."] },
+    legs: CLOAK_LEGS,
     pal: { h:"#3a3f52", H:"#262a3a", c:"#4a5068", C:"#1d2030", r:"#d9433a", R:"#8c2a30", E:"#ffffff", B:"#5a3a22", J:"#b9c2d6", W:"#eef2fa", K:"#120e1a" },
     idle: [[2,11,"W"],[2,12,"W"],[2,13,"J"],[13,11,"W"],[13,12,"W"],[13,13,"J"]],
     run:  [[1,11,"W"],[0,12,"W"],[0,13,"J"],[14,11,"W"],[15,12,"W"],[15,13,"J"]],
@@ -72,29 +121,31 @@ export const HERO = {
   },
   // Gunner: wide-brim hat, brass goggles, brown trench coat, chunky hand cannon (engine will rotate the gun toward the target).
   gunner: {
-    body: stamp(mirror8(["....KKKK","....KHHH","...KDDDD","..KHHHHH","....KJEJ","....KSSS",".....KCC","..KKKccC",".KccKccC",".KcSKcBB",".KcKKcBL","..KKKccC","...KCCcc"]),
-                [], 0, 0),
-    legs: { i: mirror8(["....KCCK","....KCK.","....KKK."]), r1: ["...KCCKKKKK.....","..KCCK...KCCK...","..KKK....KKKK..."], r2: ["....KCCKKCCK....",".....KCKKCK.....",".....KKKKKK....."], r3: [".....KKKKKCCK...","...KCCK..KCCK...","...KKKK...KKK..."] },
+    body: mirror8(["....KKKK","....KHHH","...KDDDD","..KHHHHH","....KJEJ","....KSSS",".....KCC","..KKKccC",".KccKccC",".KcSKcBB",".KcKKcBL","..KKKccC","...KCCcc"]),
+    legs: CLOAK_LEGS,
     pal: { H:"#c9a27a", D:"#5a3a22", J:"#d4a82a", E:"#ffb347", S:"#f2c9a0", C:"#5a3a22", c:"#8a5a32", B:"#3a2a1e", L:"#d4a82a", K:"#120e1a", j:"#5d6478", W:"#cfd6e6", y:"#ffd166", Y:"#fff2b0" },
-    idle: [[12,10,"B"],[13,10,"B"],[13,11,"B"],[14,9,"j"],[14,10,"j"],[15,9,"W"],[15,10,"j"],[16,9,"W"],[17,9,"W"]],
+    idle: GUN_REST,
     run:  [[13,10,"B"],[13,11,"B"],[14,11,"j"],[14,12,"j"],[15,12,"W"],[16,12,"W"],[17,13,"W"]],
-    atk: [[[12,10,"B"],[13,10,"B"],[13,11,"B"],[14,9,"j"],[14,10,"j"],[15,9,"W"],[15,10,"j"],[16,9,"W"],[17,9,"W"]],
-          [[12,10,"B"],[13,10,"B"],[13,11,"B"],[14,9,"j"],[14,10,"j"],[15,9,"W"],[15,10,"j"],[16,9,"W"],[17,9,"W"],[18,9,"Y"],[19,9,"y"],[18,8,"y"],[18,10,"y"],[20,9,"y"]],
-          [[12,9,"B"],[13,9,"B"],[13,10,"B"],[14,8,"j"],[14,9,"j"],[15,7,"W"],[15,8,"j"],[16,6,"W"],[17,5,"W"],[17,3,"j"],[18,4,"j"]]],
+    atk: [GUN_REST,
+          GUN_FLASH,
+          [[12,9,"B"],[13,9,"B"],[13,10,"B"],[14,8,"j"],[14,9,"j"],[15,7,"W"],[15,8,"j"],[16,6,"W"],[17,5,"W"],[17,3,"j"],[18,4,"j"]]],  // recoil: gun kicked up
     phase: a => a > 0.1 ? 0 : a > 0.04 ? 1 : 2, lunge: -1,
     hand: [13.5, 9.5],
   },
-  // Chronomancer: teal hood with gold clock accents, glowing gold eyes, hourglass staff (engine draws bolts / Rewind ghost).
-  chronomancer: {
+  // Necromancer: violet hood with green trim, glowing green eyes, skull staff (engine draws bolts and Raise Dead skeletons).
+  necromancer: {
     body: mirror8([".......K","......KH",".....KHh","....KHhh","....KhKK","....KhEK","....KhKK",".....KLl","..KKKhhc",".KhcKhhc",".KhhKhLL",".KHhKhhc","...KHhhc"]),
-    legs: { i: mirror8(["....KHhK","....KHK.","....KKK."]), r1: ["...KHhKKKKK.....","..KHhK...KHhK...","..KKK....KKKK..."], r2: ["....KHhKKHhK....",".....KHKKHK.....",".....KKKKKK....."], r3: [".....KKKKKHhK...","...KHhK..KHhK...","...KKKK...KKK..."] },
-    pal: { h: "#2f7f86", H: "#1d4f57", c: "#4ab3ba", L: "#e0b93a", l: "#a8841e", E: "#ffe08a", B: "#5a3a22", y: "#ffd166", w: "#cfe8ff", K: "#120e1a" },
-    idle: [[13,1,"L"],[14,1,"L"],[15,1,"L"],[13,2,"w"],[14,2,"y"],[15,2,"w"],[14,3,"y"],[13,4,"w"],[14,4,"y"],[15,4,"w"],[13,5,"L"],[14,5,"L"],[15,5,"L"],[14,6,"B"],[14,7,"B"],[14,8,"B"],[14,9,"B"],[14,10,"B"],[14,11,"B"],[14,12,"B"]],
-    run:  [[13,1,"L"],[14,1,"L"],[15,1,"L"],[13,2,"w"],[14,2,"y"],[15,2,"w"],[14,3,"y"],[13,4,"w"],[14,4,"y"],[15,4,"w"],[13,5,"L"],[14,5,"L"],[15,5,"L"],[14,6,"B"],[14,7,"B"],[14,8,"B"],[14,9,"B"],[14,10,"B"],[14,11,"B"],[14,12,"B"]],
-    atk: [
-      [[13,1,"L"],[14,1,"L"],[15,1,"L"],[13,2,"w"],[14,2,"y"],[15,2,"w"],[14,3,"y"],[13,4,"w"],[14,4,"y"],[15,4,"w"],[13,5,"L"],[14,5,"L"],[15,5,"L"],[14,6,"B"],[14,7,"B"],[14,8,"B"],[14,9,"B"],[14,10,"B"],[14,11,"B"],[14,12,"B"]],
-      [[13,1,"L"],[14,1,"L"],[15,1,"L"],[13,2,"w"],[14,2,"y"],[15,2,"w"],[14,3,"y"],[13,4,"w"],[14,4,"y"],[15,4,"w"],[13,5,"L"],[14,5,"L"],[15,5,"L"],[14,6,"B"],[14,7,"B"],[14,8,"B"],[14,9,"B"],[14,10,"B"],[14,11,"B"],[14,12,"B"],[16,3,"y"],[17,3,"y"],[18,3,"w"]],
-      [[13,1,"L"],[14,1,"L"],[15,1,"L"],[13,2,"w"],[14,2,"y"],[15,2,"w"],[14,3,"y"],[13,4,"w"],[14,4,"y"],[15,4,"w"],[13,5,"L"],[14,5,"L"],[15,5,"L"],[14,6,"B"],[14,7,"B"],[14,8,"B"],[14,9,"B"],[14,10,"B"],[14,11,"B"],[14,12,"B"]]],
+    legs: {
+      i: mirror8(["....KHhK", "....KHK.", "....KKK."]),
+      r1: ["...KHhKKKKK.....", "..KHhK...KHhK...", "..KKK....KKKK..."],
+      r2: ["....KHhKKHhK....", ".....KHKKHK.....", ".....KKKKKK....."],
+      r3: [".....KKKKKHhK...", "...KHhK..KHhK...", "...KKKK...KKK..."],
+    },
+    pal: { h: "#5a3d99", H: "#33215c", c: "#8f6bd1", L: "#7be07a", l: "#3f9a46", E: "#b8ff9f", B: "#5a3a22", y: "#7be07a", w: "#e4e0cc", K: "#120e1a" },
+    idle: SKULL_STAFF,
+    run:  SKULL_STAFF,
+    // the middle frame adds a green spark off the skull
+    atk: [SKULL_STAFF, [...SKULL_STAFF, [16,1,"y"],[17,1,"y"],[18,0,"w"]], SKULL_STAFF],
     phase: a => a > 0.12 ? 0 : a > 0.05 ? 1 : 2, lunge: -1,
     hand: [13.5, 9.5],
   },
@@ -105,12 +156,18 @@ export const WISP = ["..o..",".oyo.","oywyo",".oyo.","..o.."];
 export const HAWK = [["D.....D","dD...Dd",".dDKDd.","...d...","......."], [".......","...K...","DddKddD",".D.d.D.","......."]];
 export const FAMILIAR = [["b...b","bZ.Zb",".ZYZ.","bZ.Zb","b...b"], [".....","bZ.Zb","bZYZb","bZ.Zb","....."]];
 
-// New companions (art only until the classes are wired in): Shade Cat (Assassin), Bomb Buddy (Gunner), Sandling (Chronomancer)
+// New companions (art only until the classes are wired in): Shade Cat (Assassin), Bomb Buddy (Gunner), Bone Imp (Necromancer)
 export const CAT = [[".K.K....",".KcKcK..",".KEcEcK.",".KccccKK","..KccccK","..K.K.K."],[".K.K...K",".KcKcK.K",".KEcEcKc",".KccccKK","..KccccK","..K.K.K."]];
 export const CAT_PAL = { K: "#120e1a", c: "#5a6078", E: "#ffe066" };
 export const BOMB = [["..yY..","..KK..",".KrrK.","KrErEK","KrRRrK",".KKKK."],["..Yy..","..KK..",".KrrK.","KrErEK","KrRRrK","K.KK.K"]];
-export const SAND = [["LLLLL",".wyw.","..y..",".wyw.","LLLLL"],["LLLLL",".wyw.","..y..",".wwy.","LLLLL"]];
-export const SAND_PAL = { L: "#e0b93a", w: "#cfe8ff", y: "#ffd166", K: "#120e1a" };
+export const IMP = [["v...v","vDDDv",".DED.",".DDD.","..D.."],[".v.v.","vDDDv",".DED.",".DDD.",".D.D."]];
+export const IMP_PAL = { v: "#8f6bd1", D: "#4a2f7a", E: "#7be07a", K: "#120e1a" };
+// Raise Dead skeleton (drawn 8 wide, 9 tall)
+export const SKEL = [
+  ["..wwww..",".wEwwEw.","..wwww..","...ww...",".wwwwww.","w.wwww.w","..wwww..","..w..w..",".ww..ww."],
+  ["..wwww..",".wEwwEw.","..wwww..","...ww...",".wwwwww.","w.wwww.w","..wwww..",".w....w.","ww....ww"],
+];
+export const SKEL_PAL = { w: "#e4e0cc", E: "#7be07a", K: "#120e1a" };
 export const BOMB_PAL = { K: "#120e1a", r: "#d9433a", R: "#8c2a30", y: "#ffd166", Y: "#fff2b0", E: "#ffe066" };
 export const SLIME = ["..KKKK..",".KgGggK.","KgKggKgK","KggggggK",".KKKKKK."];
 export const SLIME_BOSS = ["...L..L..L..","...LLLLLLL..","..KKKKKKKK..",".KgGggggggK.","KgGggggggggK","KggKKggKKggK","KggKEggKEggK","KggggggggggK","KgggKKKKgggK",".KggggggggK.","..KKKKKKKK.."];
@@ -135,26 +192,60 @@ export const ICONS = {
   nova:      ["..ZZZ..",".Z...Z.","Z..Y..Z","Z.YwY.Z","Z..Y..Z",".Z...Z.","..ZZZ.."],
 };
 
+// draw a sprite (array of strings, one letter per pixel, "." = transparent) with its top-left at (x, y)
 export function spr(ctx, rows, x, y, flip, pal) {
-  rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) { const c = r[i]; if (c === ".") continue; ctx.fillStyle = pal[c]; ctx.fillRect(Math.round(x + (flip ? r.length - 1 - i : i)), Math.round(y + j), 1, 1); } });
+  rows.forEach((row, j) => {
+    for (let i = 0; i < row.length; i++) {
+      const c = row[i];
+      if (c === ".") continue;
+      ctx.fillStyle = pal[c];
+      ctx.fillRect(Math.round(x + (flip ? row.length - 1 - i : i)), Math.round(y + j), 1, 1);
+    }
+  });
 }
 
 // h = { x, y, face, moving, atk }
 export function drawHero(ctx, key, h, now, palOverride) {
-  const Hh = HERO[key], pal = palOverride || Hh.palFull, f = Math.floor(now / (h.moving ? 90 : 400)), fl = h.face < 0;
-  const legs = h.moving ? ["r1","r2","r3","r2"][f % 4] : "i", dy = f % 2;
-  const ph = h.atk > 0 ? Hh.phase(h.atk) : -1, px = h.x + (ph === Hh.lunge ? h.face : 0);
-  const ov = h.noWeapon ? [] : ph >= 0 ? Hh.atk[ph] : h.moving ? Hh.run : Hh.idle;       // noWeapon: engine draws the blade itself
-  spr(ctx, Hh.body, px, h.y + dy, fl, pal); spr(ctx, (Hh.legs || LEGS)[legs], px, h.y + 13, fl, pal);
-  for (const [x, y, c] of ov) { ctx.fillStyle = pal[c]; ctx.fillRect(Math.round(px + (fl ? 15 - x : x)), Math.round(h.y + y + (y < 13 ? dy : 0)), 1, 1); }
-  if (Hh.glint && !palOverride) {                                   // "shining" armour: a sparkle every ~2.6 s
-    const cyc = 2600, t = now % cyc;
+  const hero = HERO[key];
+  const pal = palOverride || hero.palFull;
+  const frame = Math.floor(now / (h.moving ? 90 : 400));
+  const flipped = h.face < 0;
+
+  const legs = h.moving ? ["r1", "r2", "r3", "r2"][frame % 4] : "i";
+  const bob = frame % 2;
+
+  // which attack pose we're in (-1 = not attacking); some classes lunge forward during one of them
+  const pose = h.atk > 0 ? hero.phase(h.atk) : -1;
+  const px = h.x + (pose === hero.lunge ? h.face : 0);
+
+  // weapon overlay; noWeapon means the engine draws the blade itself
+  const overlay = h.noWeapon ? [] : pose >= 0 ? hero.atk[pose] : h.moving ? hero.run : hero.idle;
+
+  spr(ctx, hero.body, px, h.y + bob, flipped, pal);
+  spr(ctx, (hero.legs || LEGS)[legs], px, h.y + 13, flipped, pal);
+  for (const [x, y, c] of overlay) {
+    ctx.fillStyle = pal[c];
+    ctx.fillRect(Math.round(px + (flipped ? 15 - x : x)), Math.round(h.y + y + (y < 13 ? bob : 0)), 1, 1);
+  }
+
+  // "shining" armour: a sparkle every ~2.6 s
+  if (hero.glint && !palOverride) {
+    const cycle = 2600;
+    const t = now % cycle;
     if (t < 200) {
-      const [gx, gy] = Hh.glint[Math.floor(now / cyc) % Hh.glint.length];
+      const [gx, gy] = hero.glint[Math.floor(now / cycle) % hero.glint.length];
       if (!(h.noWeapon && gx > 15)) {
-        const x = Math.round(px + (fl ? 15 - gx : gx)), y = Math.round(h.y + gy + dy);
-        ctx.fillStyle = "#ffffff"; ctx.fillRect(x, y, 1, 1);
-        if (t < 130) { ctx.fillStyle = "#dfe9ff"; ctx.fillRect(x - 1, y, 1, 1); ctx.fillRect(x + 1, y, 1, 1); ctx.fillRect(x, y - 1, 1, 1); ctx.fillRect(x, y + 1, 1, 1); }
+        const x = Math.round(px + (flipped ? 15 - gx : gx));
+        const y = Math.round(h.y + gy + bob);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(x, y, 1, 1);
+        if (t < 130) {
+          ctx.fillStyle = "#dfe9ff";
+          ctx.fillRect(x - 1, y, 1, 1);
+          ctx.fillRect(x + 1, y, 1, 1);
+          ctx.fillRect(x, y - 1, 1, 1);
+          ctx.fillRect(x, y + 1, 1, 1);
+        }
       }
     }
   }

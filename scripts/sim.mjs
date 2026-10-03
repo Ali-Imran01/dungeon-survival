@@ -1,5 +1,5 @@
 // Balance simulation: node scripts/sim.mjs [runs] [--armor=on|off|on-1] [--mortal]
-//   --chr.dmg=1.5 --chr.interval=0.9 (Chronomancer tuning)   --asn.markMul=1.3 --asn.interval=0.34 (Assassin tuning)   --god (boss timings only)   --gun.reload=2 --gun.dmg=1.6 --gun.pellet=0.6 --gun.bomb=3 (Gunner tuning)
+//   --nec.dmg=2 --nec.interval=0.9 (Necromancer tuning)   --asn.markMul=1.3 --asn.interval=0.34 (Assassin tuning)   --god (boss timings only)   --gun.reload=2 --gun.dmg=1.6 --gun.pellet=0.6 --gun.bomb=3 (Gunner tuning)
 //   --classes=warden,ranger,mage,gunner (default)
 //   difficulty: --pressure=1.5 (spawn interval ÷) --bosshp=1.3 (boss HP ×)
 //   tuning: --plates=N --repair=S --first=S --reset (repair restarts on every hit)
@@ -11,9 +11,9 @@ const E = await import("../src/components/engine.js");
 const { newGame, step, triggerAbility, fitSize, nearest, chooseUpgrade, continueEndless, ARMOR } = E;
 const { CLASSES } = await import("../src/components/classes.js");
 fitSize(false);
-const CLS = (process.argv.find(a => a.startsWith("--classes=")) || "--classes=warden,ranger,mage,gunner,assassin,chronomancer").split("=")[1].split(",");
-const { GUN, ASN, CHR } = await import("../src/components/classes.js");
-for (const a of process.argv) { let m = a.match(/^--gun\.(\w+)=([\d.]+)$/); if (m) GUN[m[1]] = +m[2]; m = a.match(/^--asn\.(\w+)=([\d.]+)$/); if (m) ASN[m[1]] = +m[2]; m = a.match(/^--chr\.(\w+)=([\d.]+)$/); if (m) CHR[m[1]] = +m[2]; }          // e.g. --gun.reload=2 --gun.dmg=1.6
+const CLS = (process.argv.find(a => a.startsWith("--classes=")) || "--classes=warden,ranger,mage,gunner,assassin,necromancer").split("=")[1].split(",");
+const { GUN, ASN, NEC } = await import("../src/components/classes.js");
+for (const a of process.argv) { let m = a.match(/^--gun\.(\w+)=([\d.]+)$/); if (m) GUN[m[1]] = +m[2]; m = a.match(/^--asn\.(\w+)=([\d.]+)$/); if (m) ASN[m[1]] = +m[2]; m = a.match(/^--nec.(\w+)=([\d.]+)$/); if (m) NEC[m[1]] = +m[2]; }          // e.g. --gun.reload=2 --gun.dmg=1.6
 const GOD_ONLY = process.argv.includes("--god"), ENDLESS = process.argv.includes("--endless"), ROOMS = !process.argv.includes("--norooms");   // rooms are on by default in stage 1; --norooms plays the old single room;   // --endless: keep going after the Hollow Lord, report depth (loop*5 + stage)
 const RUNS = +process.argv.find(a => /^\d+$/.test(a)) || 6;
 const MODE = (process.argv.find(a => a.startsWith("--armor=")) || "--armor=on").split("=")[1], MORTAL_ONLY = process.argv.includes("--mortal");
@@ -42,8 +42,7 @@ function bot(g) {
     }
     else if (g.cls === "gunner") { if (d > 32) { dx += vx / d; dy += vy / d; } else if (d < 16) { dx -= vx / d * 0.8; dy -= vy / d * 0.8; } }   // shotgun: stay 16-32px from the target (reach 40)
     else { const want = 60; if (d < want - 10) { dx -= vx / d; dy -= vy / d; } else if (d > want + 30) { dx += vx / d; dy += vy / d; } else { dx += -vy / d * 0.7; dy += vx / d * 0.7; } }
-    if (g.cls === "chronomancer") { if (!process.argv.includes("--norewind") && p.cd <= 0 && g.armor.n === 0 && g.hist.length > 30) triggerAbility(g); }   // Rewind when the armour is gone
-    else if (nearest(g, cx, cy, 16) && p.cd <= 0) triggerAbility(g);
+    if (nearest(g, cx, cy, g.cls === "necromancer" ? 80 : 16) && p.cd <= 0) triggerAbility(g);
   }
   const s = g.shards[0]; if (s && Math.hypot(s.x - cx, s.y - cy) < 60) { dx += (s.x - cx) / 60; dy += (s.y - cy) / 60; }
   const u = g.pu[0]; if (u && !g.en.some(e => Math.hypot(e.x - cx, e.y - cy) < 25)) { const d = Math.hypot(u.x - cx, u.y - cy) || 1; dx += (u.x - cx) / d * 0.8; dy += (u.y - cy) / d * 0.8; }

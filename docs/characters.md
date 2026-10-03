@@ -8,7 +8,7 @@ The game has **six playable classes**, arranged as 3 roles × 2 styles. Every cl
 |---|---|---|
 | **Melee** | **Warden** — knight, tank, wide sword sweeps | **Assassin** — skirmisher, burst, blink-strikes |
 | **Ranged** | **Ranger** — mobile, sustained arrow fire | **Gunner** — magazine burst, recoil jumps, bomb-bot |
-| **Magic** | **Mage** — AoE control, homing orbs, chill | **Chronomancer** — time control: echo bolts, stasis bubbles, rewind |
+| **Magic** | **Mage** — AoE control, homing orbs, chill | **Necromancer** — summoner: soul bolts, grave fog, raise dead |
 
 ```text
 Warden   = I survive by fighting up close.
@@ -16,11 +16,11 @@ Assassin = I survive by never being where the attack lands.
 Ranger   = I survive by staying away.
 Gunner   = I survive by killing before it arrives.
 Mage     = I survive by controlling the battlefield.
-Chronomancer = I survive by bending time.
+Necromancer = I let the dead do the fighting.
 ```
 
-Colour identity (so classes read at a glance): Warden **purple + steel**, Ranger **green**, Mage **blue**, Assassin **slate + red**, Gunner **brown + orange**, Chronomancer **teal + gold**.
-Silhouettes: plumed helm + great sword / hood / pointed hat / slim hood + twin daggers / wide-brim hat / hooded scholar with an hourglass staff.
+Colour identity (so classes read at a glance): Warden **purple + steel**, Ranger **green**, Mage **blue**, Assassin **slate + red**, Gunner **brown + orange**, Necromancer **teal-green + violet**.
+Silhouettes: plumed helm + great sword / hood / pointed hat / slim hood + twin daggers / wide-brim hat / hooded caster with a skull staff.
 
 ---
 
@@ -35,7 +35,7 @@ Silhouettes: plumed helm + great sword / hood / pointed hat / slim hood + twin d
 | **Companion** | One per class, with a distinct job (see each class). |
 | **Class power-ups** | Two timed pickups per class (8s, stack to level III). Shared: heart, shield, swift boots. |
 | **Class upgrades** | Four per class (1 Common, 1 Rare, 2 Epic) mixed into the level-up pool. |
-| **Unlocks** | Start with Warden, Ranger, Mage. **Win with the Warden → unlock Assassin; Ranger → Gunner; Mage → Chronomancer.** Six trophies = "Master of Souls". |
+| **Unlocks** | Start with Warden, Ranger, Mage. **Win with the Warden → unlock Assassin; Ranger → Gunner; Mage → Necromancer.** Six trophies = "Master of Souls". |
 
 Design rules that apply to all classes:
 
@@ -186,48 +186,48 @@ Orbits him and fires support shots. It stays secondary; his sword is the main we
 
 ---
 
-## 6. Chronomancer *(new — playable, locked until you win with the Mage)*
+## 6. Necromancer *(new — playable, locked until you win with the Mage)*
 
-**Role:** Magic time control / utility
-**Playstyle:** Fire piercing bolts that echo, drop stasis bubbles on crowds and bullet patterns, and rewind when a mistake catches you.
+**Role:** Magic summoner / utility
+**Playstyle:** Fire piercing soul bolts, raise skeletons to hunt for you, and let the Bone Imp drop grave fog on crowds and bullet patterns.
 
-**Look:** Hooded scholar in a teal robe with gold clock accents and glowing gold eyes, carrying a staff topped with an hourglass. A faint teal ghost shows where Rewind would take him.
+**Look:** Hooded caster in a violet robe with bone-green trim and glowing green eyes, carrying a skull-topped staff. Skeletons are pale bone with green eyes.
 
 | Attribute | Design |
 |---|---|
 | Hearts | 3 (+3 plates) |
 | Speed | 58 (slow, ~93 %) |
-| Attack | **Echo Bolt**: a time bolt at the nearest enemy (range 110), **pierces 1 enemy**. 0.7 s later an **echo** fires the same bolt again *from where he was standing*, re-aimed at the same target if it is still alive. |
-| Damage / interval | 2 dmg per bolt, one bolt every 1.0 s (echo included ≈ 4 dps) |
-| Ability | **Rewind** (cooldown 8 s): jump back to where he was 2 s ago and **recover armour plates lost in that window**; 0.3 s invulnerable |
-| Companion | **Sandling** (floating hourglass): every 8 s flies to the most crowded spot (2+ enemies, or a boss) and drops a **Stasis Bubble** (radius 24, 3 s): enemies inside move at 40 %, bosses at 70 %, enemy bullets at 30 % |
-| Class power-ups | **Slow Motion** (all enemies and bullets 30 % slower for 8 s), **Overclock** (+40 % attack speed and echoes fire twice as soon for 8 s) |
-| Class upgrades | **Long Echo** (C: echoes deal +25 % per stack), **Chrono Shield** (R: Rewind also gives 1.5 s invulnerability), **Replay** (E: enemies you hit take 30 % of that damage again 2 s later), **Twin Bubbles** (E: the Sandling drops two bubbles) |
-| Companion Bond | Stasis bubbles last 1.5 s longer |
+| Attack | **Soul Bolt**: a bolt at the nearest enemy (range 110), **pierces 1 enemy** |
+| Damage / interval | 2 dmg per bolt, one bolt every 1.0 s |
+| Ability | **Raise Dead** (cooldown 8 s): calls 2 skeletons that chase the nearest enemy or boss for 6 s (1 dmg per touch, 0.7 s per target); 0.3 s invulnerable |
+| Companion | **Bone Imp**: every 8 s flies to the most crowded spot (2+ enemies, or a boss) and drops **Grave Fog** (radius 24, 3 s): enemies inside move at 40 %, bosses at 70 %, enemy bullets at 30 % |
+| Class power-ups | **Grave Hush** (all enemies and bullets 30 % slower for 8 s), **Dark Frenzy** (+40 % attack speed for 8 s) |
+| Class upgrades | **Bone Legion** (C: Raise Dead calls +1 skeleton, max 2), **Soul Ward** (R: Raise Dead also gives 1.5 s invulnerability), **Soul Rot** (E: enemies you hit take 30 % of that damage again 2 s later), **Twin Imps** (E: the Bone Imp drops two fog zones) |
+| Companion Bond | Grave fog lasts 1.5 s longer |
 
-**Strengths:** the best defence against bullet patterns and boss attacks, steady damage, mechanics no other class has, plates come back with Rewind.
-**Weaknesses:** low burst; Rewind has a long cooldown and needs foresight; fast enemies (bats, cinders) run through bubbles; single-target bolts need the pierce to keep up with swarms.
-**Implementation notes:** position history is recorded every frame (2.5 s); the Rewind ghost only shows while Rewind is ready. Bubbles slow enemies through a separate `stasis` timer, so they stack with chill. Replay is skipped for its own hits (no chains).
-**Tuning (simulation):** the first numbers (1.5 dmg, no pierce, echo re-fired at the old direction) gave a boss total of 307 s and he was the only class to die with armour on. Findings: (1) 1.5–1.8 dmg misses the 2-HP breakpoint (slimes, imps), so bolts are 2 dmg with a 1.0 s interval; (2) magma slimes and their cinder swarm caused 60 % of his damage, so the bolt pierces 1; (3) the echo re-aims at its target. Final: boss total ≈203 s (Ranger 174, Gunner 197, Assassin 198, Warden 243, Mage 319) and 5/6 bot wins. Values live in `CHR` in `classes.js`.
-**Why he is not "Mage with slows":** the Mage kills groups with splash and chill; the Chronomancer's control comes from *time itself* (slowing bullets and enemies in an area, undoing damage) and his damage comes from paired piercing shots.
+**Strengths:** the best defence against bullet patterns and boss attacks, damage that keeps working while he kites, mechanics no other class has.
+**Weaknesses:** low burst; Raise Dead has a long cooldown and the skeletons are slow; fast enemies (bats, cinders) run through the fog; single-target bolts need the pierce to keep up with swarms.
+**Implementation notes:** skeletons live in `g.minions` (`stepMinions` in `engine.js`); fog slows enemies through a separate `stasis` timer, so it stacks with chill. Soul Rot is skipped for its own hits (no chains).
+**Tuning (simulation):** bolts are 2 dmg so they hit the 2-HP breakpoint (slimes, imps); the pierce handles the magma/cinder swarm; skeleton dmg 1 every 0.7 s per target. First pass (bolt 3 dmg, skeletons 2 dmg every 0.5 s) gave a boss total of only ~104 s, far too strong. Final: boss total ≈198 s (Ranger 174, Gunner 197, Assassin 198, Warden 243, Mage 319). Values live in `NEC` in `classes.js`.
+**Why he is not "Mage with slows":** the Mage kills groups with splash and chill; the Necromancer's damage comes from minions he sends after targets while his own bolts stay single-target, and his control comes from the fog.
 
 ---
 
 ## Class comparison
 
-| Attribute | Warden | Assassin | Ranger | Gunner | Mage | Chronomancer |
+| Attribute | Warden | Assassin | Ranger | Gunner | Mage | Necromancer |
 |---|---:|---:|---:|---:|---:|---:|
 | Hearts | **4** | 3 | 3 | 3 | 3 | 3 |
 | Speed | 62 | 74 | **78** | 60 | 53 | 58 |
 | Reach | Short (24) | **Shortest (16)** | Long (120) | Medium (110) | Long (125) | Medium (110) |
 | Single target | Medium | High (burst) | High | **High (burst)** | Medium | Medium |
-| AoE | Medium | Low | Low | Medium (bomb-bot) | **High** | Low (pierce, bubbles) |
+| AoE | Medium | Low | Low | Medium (bomb-bot) | **High** | Low (pierce, fog) |
 | Burst | Medium | **High** | Low | **High** | Medium | Low |
 | Sustained | Medium | Medium | **High** | Medium | Medium | **High** |
-| Mobility | Medium | **High** | High | Medium | Low (+Blink) | Low (+Rewind) |
+| Mobility | Medium | **High** | High | Medium | Low (+Blink) | Low (+Raise Dead) |
 | Survivability | **High** | Low | Low | Low | Low | Low |
-| Crowd control | Low | Low (stun on Ambush) | Low | Low | **High** | **High** (bubbles) |
-| Companion job | Extra shots | Marks targets | Knockback swoops | Bomb strikes | Blocks bullets | Stasis bubbles |
+| Crowd control | Low | Low (stun on Ambush) | Low | Low | **High** | **High** (grave fog) |
+| Companion job | Extra shots | Marks targets | Knockback swoops | Bomb strikes | Blocks bullets | Grave fog |
 
 ---
 
@@ -237,7 +237,7 @@ Orbits him and fires support shots. It stays secondary; his sword is the main we
 |---|---|
 | Assassin | Small **red diamond** above marked enemies; a "Step ready / Ambush window" pip beside the ability icon; a short reticle showing where Shadow Step lands |
 | Gunner | **Ammo pips (6)** beside the ability icon, reload progress bar, muzzle flash + shell casings |
-| Chronomancer | **Rewind ghost** (faint teal ghost of where Rewind lands, only while ready); teal **bubble rings**; Sandling flight path |
+| Necromancer | Skeleton fade-out before they expire; green **fog rings**; Bone Imp flight path |
 | All | Class select card: hue chip, one-line playstyle, stat bars (HP, DMG, RANGE, SPEED) as now |
 
 ## Stage 5 "Mirror Self" per class
@@ -249,7 +249,7 @@ Orbits him and fires support shots. It stays secondary; his sword is the main we
 | Ranger | Three-arrow volleys and a back-roll |
 | Gunner | Three-round bursts, then a recoil hop |
 | Mage | Slow homing orbs and blink |
-| Chronomancer | Fires a bolt and an echo bolt 0.7 s later |
+| Necromancer | Fires a single violet bolt, then pauses |
 
 ---
 
@@ -262,7 +262,7 @@ Assassin          3      74    1 × 0.34 s (90°, 16 px)   Shadow Step     (3.5 
 Ranger            3      78    1 × 0.28 s                Roll            (1.2 s)     3.6
 Gunner            3      60    2 × 0.32 s, 6 rounds      Recoil Jump     (3.5 s)     3.1 avg (6.3 burst) + bomb 0.4
 Mage              3      53    2 × 0.70 s (+splash)      Blink           (2.0 s)     2.9 + splash
-Chronomancer      3      58    2 × 1.0 s (pierce 1)+echo  Rewind          (8.0 s)     ≈4.0 (bolt + echo), bubbles for control
+Necromancer      3      58    2 × 1.0 s (pierce 1)       Raise Dead      (8.0 s)     2.0 + skeletons, fog for control
 ```
 
 All values are playtesting baselines. After implementation, run `npm run sim` (with a bot per new class) and tune until boss-fight times are within ~20 % across classes.
@@ -273,7 +273,7 @@ Also planned for the simulation: each class's expected heart losses per run, and
 1. ✅ Art for the three new classes (this document + `sprites.js`).
 2. ✅ Gunner: playable, sim-tuned, locked until a Ranger win (`?unlock=1` in the URL unlocks everything for testing).
 3. ✅ Assassin: playable, sim-tuned, locked until a Warden win.
-4. ✅ Chronomancer: playable, sim-tuned, locked until a Mage win (replaced the Warlock idea).
+4. ✅ Necromancer: playable, sim-tuned, locked until a Mage win (replaced the Warlock idea).
 5. Unlock flow, class select with 6 cards (scroll on the Game Boy screen), Mirror Self variants, sounds.
 
 ## Open questions

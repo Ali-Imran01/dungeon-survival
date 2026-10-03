@@ -1,10 +1,11 @@
 // Stage 4 — Flooded Crypt enemies: sprites + tuning. All are undead: water does NOT slow them.
+import { mirror8 as mirror } from "../sprites.js";
+
 export const CRYPT_EPAL = {
   K:"#120e1a", w:"#e8e4d8", W:"#b8b09c", g:"#7dff9a", G:"#3fbf6a", z:"#6f8f7a", Z:"#4a6655", y:"#d8e070", q:"#3f7a4a",
   d:"#3a2e24", D:"#5a4636", J:"#7a7486", j:"#4a4450", u:"#2f6f6a", U:"#4f9f96", c:"#5ef2ff",
   m:"#3f2f5a", M:"#5a4a7a", n:"#342f48", N:"#4a4466", L:"#d4a82a",
 };
-const mirror = half => half.map(r => r + [...r].reverse().join(""));
 
 // Regular: Skeleton — hp 2, speed 36. On death collapses into a bone pile; reassembles after 3s with 1 hp
 //   unless the pile is hit again or walked over (shatters for good). Teaches finishing enemies off.

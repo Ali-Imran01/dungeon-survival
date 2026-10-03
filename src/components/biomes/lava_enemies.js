@@ -1,9 +1,10 @@
 // Stage 3 — Lava Forge enemies: sprites + tuning. Behaviour notes are the spec for the engine.
+import { mirror8 as mirror } from "../sprites.js";
+
 export const LAVA_EPAL = {
   K:"#120e1a", R:"#8c1f2b", r:"#d9433a", o:"#ff8a2a", y:"#ffd166", j:"#4a4450", J:"#7a7486", b:"#5a3a22",
   d:"#2a1c1c", D:"#4a2c2c", g:"#d9433a", G:"#ffb26b", W:"#cfd6e6",
 };
-const mirror = half => half.map(r => r + [...r].reverse().join(""));
 
 // Regular: Magma Slime — slime recolour (g/G), hp 3; on death splits into 2 Cinders (hp 1, speed 50, 4s lifespan).
 export const CINDER = [".KKK.","KoyoK","KoooK",".KKK."];
